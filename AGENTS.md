@@ -1,0 +1,6 @@
+- This is a Slidev deck using the local theme in `../slidedev-theme-kotlin`.
+- Read `node_modules/@slidev/cli/skills/slidev/SKILL.md` before changing Slidev syntax or configuration.
+- Keep the talk code-first: one idea per slide, short headings, precise claims, and useful speaker notes.
+- After editing Kotlin fences, run `npm run snippets`, then `npm run snippets:check` and `./gradlew check`.
+- Keep illustrative or proposed syntax explicitly marked as unchecked; do not claim it compiles.
+- Run `npm run build` and inspect slides in a browser after layout changes. Close any browser session you create when finished.

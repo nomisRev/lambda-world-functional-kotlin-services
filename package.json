@@ -1,0 +1,24 @@
+{
+  "name": "functional-kotlin-services-slides",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "slidev --open",
+    "present": "slidev --remote",
+    "build": "slidev build",
+    "export": "slidev export",
+    "screenshot": "slidev export --format png",
+    "snippets": "slidev-kotlin-snippets",
+    "snippets:check": "slidev-kotlin-snippets --check",
+    "check": "npm run snippets:check && ./gradlew check && npm run build"
+  },
+  "dependencies": {
+    "@slidev/cli": "52.19.1",
+    "roughjs": "4.6.6",
+    "slidev-theme-kotlin": "file:../slidedev-theme-kotlin",
+    "vue": "3.5.41"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.62.1"
+  }
+}
