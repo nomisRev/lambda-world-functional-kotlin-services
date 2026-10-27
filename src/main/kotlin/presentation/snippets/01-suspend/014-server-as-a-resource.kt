@@ -5,8 +5,11 @@ package presentation.snippets.s01suspend.slide14
 
 import presentation.support.*
 
-context(_: ResourceScope)
-suspend fun <A> install(
-  acquire: suspend () -> A,
-  release: suspend (A, ExitCase) -> Unit,
-): A
+fun main() = SuspendApp {
+  resourceScope {
+    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
+      
+    }
+    awaitCancellation()
+  }
+}

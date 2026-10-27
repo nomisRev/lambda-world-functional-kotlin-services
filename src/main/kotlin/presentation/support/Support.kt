@@ -1,6 +1,7 @@
 package presentation.support
 
 import kotlinx.coroutines.flow.Flow
+import opensavvy.spine.api.DynamicResource
 
 // Domain and SDK contracts for the talk, not substitutes for any library API.
 @JvmInline

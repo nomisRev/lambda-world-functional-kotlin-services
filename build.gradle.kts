@@ -6,12 +6,25 @@ repositories { mavenCentral() }
 
 dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-  implementation("io.arrow-kt:arrow-core:2.2.3")
-  implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
-  implementation("io.arrow-kt:suspendapp:2.2.3")
-  implementation("io.arrow-kt:suspendapp-ktor:2.2.3")
-  implementation("io.ktor:ktor-server-netty:3.6.0")
-  implementation("io.ktor:ktor-server-auth:3.6.0")
+
+  implementation(arrow.core)
+  implementation(arrow.fx.coroutines)
+  implementation(arrow.suspendapp)
+  implementation(arrow.suspendapp.ktor)
+
+  implementation(ktorLibs.serialization.kotlinx.json)
+  implementation(ktorLibs.server.netty)
+  implementation(ktorLibs.server.defaultHeaders)
+  implementation(ktorLibs.server.cors)
+  implementation(ktorLibs.server.contentNegotiation)
+  implementation(ktorLibs.server.config.yaml)
+  implementation(ktorLibs.server.auth.jwt)
+  implementation(ktorLibs.client.contentNegotiation)
+
+  implementation("dev.opensavvy.spine:api:0.12.1")
+  implementation("dev.opensavvy.spine:server:0.12.1")
+  implementation("dev.opensavvy.spine:server-arrow:0.12.1")
+  implementation("dev.opensavvy.spine:client:0.12.1")
 
   testImplementation(kotlin("test"))
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -25,6 +38,7 @@ kotlin {
     "-Xname-based-destructuring=complete",
     "-opt-in=io.ktor.utils.io.ExperimentalKtorApi",
     "-opt-in=arrow.core.raise.ExperimentalRaiseAccumulateApi",
+    "-Xcollection-literals"
   )
 }
 

@@ -9,6 +9,6 @@ import kotlinx.coroutines.ensureActive
 
 suspend fun ByteArray.checksum() =
   foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) yield()
+    if (index % 1024 == 0) currentCoroutineContext().ensureActive()
     acc * 31 + byte
   }

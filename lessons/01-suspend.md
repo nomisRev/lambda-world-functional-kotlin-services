@@ -18,9 +18,22 @@ Start with the smallest signature.
 
 ---
 
+# SuspendApp
+
+TODO
+
+some graphical animation / intro showing _why_
+we need `IO` to model a Process <~> App.
+
+(SIGTERM/SIGINT) <~> cancel and join inner work,
+backpressure process to allow gracefull finishing work,
+and closing resources.'
+
+---
+
 # What is `suspend`?
 
-```kotlin
+```kotlin no-compile
 typealias Thunk<A> = () -> A
 typealias IO<A> = suspend () -> A
 ```
@@ -31,14 +44,14 @@ typealias IO<A> = suspend () -> A
 
 <DrawnAnnotation text="Event" :line="2"/>
 
-```kotlin
+```kotlin no-compile
 suspend fun events(): List<Event>
 suspend fun Event.process( ): Unit
 ```
 
-<DrawnAnnotation text="Event" :line="2" label="Extension function"/>
+<DrawnAnnotation text="Event" :line="2" label="Extension function" :geometry="{ label: { x: 0.2395, y: 0.4575 } }"/>
 
-```kotlin
+```kotlin no-compile
 fun events(): IO<List<Event>>
 fun Event.process(): IO<Unit>
 ```
@@ -49,13 +62,13 @@ magic-move
 
 # What is `suspend`?
 
-```kotlin
+```kotlin no-compile
 suspend fun events(): List<Event>
 suspend fun Event.process( ): Unit {
   val event: Event = this
 }
 ```
-```kotlin
+```kotlin no-compile
 fun events(): IO<List<Event>>
 fun Event.process(): IO<Unit>
 ```
@@ -66,7 +79,9 @@ magic-move
 
 # What is `suspend`?
 
-```kotlin{4-7}
+<SuspendGutter :lines="[5, 6]">
+
+```kotlin{4-7} no-compile
 suspend fun events(): List<Event>
 suspend fun Event.process(): Unit
 
@@ -75,7 +90,10 @@ suspend fun program() {
   events.process()
 }
 ```
-```kotlin{4-6}
+
+</SuspendGutter>
+
+```kotlin{4-6} no-compile
 fun events(): IO<List<Event>>
 fun Event.process(): IO<Unit>
 
@@ -88,17 +106,31 @@ fun program(): IO<Unit> =
 
 # What is `suspend`?
 
-<DrawnAnnotation text="suspend" label="suspend lambda" on="0"  :geometry="{ label: { x: 0.4432, y: 0.2843 } }"/>
-<DrawnAnnotation text="SuspendAppScope" label="lambda with receiver, allows calling `exitApp(code)`" on="1"  :geometry="{ label: { x: 0.6555, y: 0.2907 } }"/>
+<DrawnAnnotation text="suspend" label="suspend lambda" on="0"  :geometry="{ label: { x: 0.4280, y: 0.2681 } }"/>
+<DrawnAnnotation text="SuspendAppScope" label="lambda with receiver, allows calling `exitApp(code)`" on="1"  :geometry="{ label: { x: 0.6493, y: 0.2711 } }"/>
 
-```kotlin
+```kotlin arrow no-compile
 fun SuspendApp(block: suspend SuspendAppScope.() -> Unit): Unit
 ```
-```kotlin
+
+<br/>
+
+<SuspendGutter :lines="[2]">
+<TypeHint :line="1" receiver="SuspendAppScope">
+
+```kotlin arrow
+import arrow.continuations.SuspendApp
+
+suspend fun program(): Unit = TODO()
+
+//Example
 fun main() = SuspendApp {
   program()
 }
 ```
+
+</TypeHint>
+</SuspendGutter>
 
 <v-click at="+2">
   <ul>
@@ -159,6 +191,7 @@ suspend fun events(): List<Event> =
 # `suspend` is cancellable
 
 <DrawnAnnotation text="ensureActive()" label="Check cancellation, and stop if case of cancellation" />
+<SuspendGutter :lines="[3]">
 
 ```kotlin
 import kotlinx.coroutines.currentCoroutineContext
@@ -171,11 +204,14 @@ suspend fun ByteArray.checksum() =
   }
 ```
 
+</SuspendGutter>
+
 ---
 
 # `suspend` is cancellable
 
 <DrawnAnnotation text="yield()" label="Fairness operator, reschedule yourself to allow interleaving of tasks" />
+<SuspendGutter :lines="[3]">
 
 ```kotlin
 import kotlinx.coroutines.currentCoroutineContext
@@ -188,15 +224,19 @@ suspend fun ByteArray.checksum() =
   }
 ```
 
+</SuspendGutter>
+
 ---
 
 # Server as a Resource
 
-<DrawnAnnotation text="resourceScope" label="Scope for resource management" on="0"  :geometry="{ label: { x: 0.4021, y: 0.2457 } }"/>
-<DrawnAnnotation text="server" label="`install` a server into the `resourceScope`" on="1"  :geometry="{ label: { x: 0.3185, y: 0.3440 } }"/>
-<DrawnAnnotation text="awaitCancellation" label="Await `SIGTERM`/`SIGINT` which cancels the `SuspendApp`" on="2"  :geometry="{ label: { x: 0.3759, y: 0.5005 } }"/>
+<DrawnAnnotation text="resourceScope" label="Scope for resource management" on="0"  :geometry="{ label: { x: 0.6334, y: 0.2449 } }"/>
+<DrawnAnnotation text="server" label="`install` a server into the `resourceScope`" on="1"  :geometry="{ label: { x: 0.3171, y: 0.3490 } }"/>
+<DrawnAnnotation text="awaitCancellation" label="Await `SIGTERM`/`SIGINT` which cancels the `SuspendApp`\n-> cancels and awaits the running `suspend` lambda and `CoroutineScope`" on="2"  :geometry="{ label: { x: 0.4509, y: 0.5137 } }"/>
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
 
-```kotlin
+```kotlin arrow
 fun main() = SuspendApp {
   resourceScope {
     server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
@@ -207,13 +247,16 @@ fun main() = SuspendApp {
 }
 ```
 
+</TypeHint>
+</TypeHint>
+
 ---
 
 # Server as a Resource
 
 <DrawnAnnotation text="ExitCase" label="`Completed`, `Cancelled` or `Failure`"  :geometry="{ label: { x: 0.4792, y: 0.4694 } }"/>
 
-```kotlin
+```kotlin arrow no-compile
 context(_: ResourceScope)
 suspend fun <A> install(
   acquire: suspend () -> A,
@@ -226,7 +269,7 @@ suspend fun <A> install(
 # Server as a Resource
 
 
-```kotlin
+```kotlin arrow no-compile
 context(_: ResourceScope)
 suspend fun server(
   engine: ApplicationEngine,
@@ -240,21 +283,90 @@ suspend fun server(
 
 ---
 
+# Long running
+
+TODO: Animation showing event processors as 'forever' tasks,
+they run with same lifecycle as the server.
+
+---
+
 # Process events in parallel
 
 <DrawnAnnotation text="launch" label="Starts a parallel task within the `SuspendAppScope`"  :geometry="{ label: { x: 0.4733, y: 0.5431 } }"/>
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<TypeHint :line="3" receiver="Application">
 
-```kotlin
+```kotlin arrow
 fun main() = SuspendApp {
   resourceScope {
-    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
-      // configure server
+    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
+      
     }
     launch { processor() }
     awaitCancellation()
   }
 }
 ```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="dependencies()" label="`suspend fun ResourceScope.dependencies(): Dependencies`"  :connect="true" :geometry="{ label: { x: 0.6553, y: 0.3918 }, connector: { type: 'quadratic', start: { x: 0.3712, y: 0.3112 }, control: { x: 0.4285, y: 0.3133 }, end: { x: 0.4349, y: 0.3710 } } }"/>
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<TypeHint :line="4" receiver="Application">
+
+```kotlin arrow
+fun main() = SuspendApp {
+  resourceScope {
+    val dep = dependencies()
+    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
+      
+    }
+    launch { dep.processor() }
+    awaitCancellation()
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+
+---
+
+# Process events in parallel
+
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<TypeHint :line="5" receiver="Application">
+
+```kotlin arrow
+fun main() = SuspendApp {
+  resourceScope {
+    val dep = dependencies()
+    val scope = coroutineScope()
+    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
+      
+    }
+    scope.launch { dep.processor() }
+    awaitCancellation()
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
 
 ---
 
@@ -286,8 +398,17 @@ suspend fun processor() {
 <DrawnAnnotation text="collect" label="Drain the `Flow`, `suspend` awaits until entire `Flow` is drained" on="2"  :geometry="{ label: { x: 0.4445, y: 0.4002 } }"/>
 
 ```kotlin
-import kotlinx.coroutines.Channel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
 
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
 suspend fun processor() {
   sdk.events().consumeAsFlow()
     .map { handle(it) }
@@ -300,9 +421,17 @@ suspend fun processor() {
 # Process events in parallel
 
 ```kotlin
-import kotlinx.coroutines.Channel
-import arrow.fx.coroutines.parMapUnordered
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
 
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
 suspend fun processor() {
   sdk.events().consumeAsFlow()
     .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
@@ -314,10 +443,18 @@ suspend fun processor() {
 
 # Process events in parallel
 
-```kotlin
-import kotlinx.coroutines.Channel
-import arrow.fx.coroutines.parMapUnordered
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
 
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
 suspend fun processor() {
   sdk.events().consumeAsFlow()
     .parMapUnordered(concurrency = 64) { handle(it) }
@@ -329,10 +466,18 @@ suspend fun processor() {
 
 # Process events in parallel
 
-```kotlin
-import kotlinx.coroutines.Channel
-import arrow.fx.coroutines.parMap
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
 
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
 suspend fun processor() {
   sdk.events().consumeAsFlow()
     .parMap(concurrency = 64) { handle(it) }
@@ -347,9 +492,18 @@ suspend fun processor() {
 <DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
 
 ```kotlin
-import kotlinx.coroutines.Channel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
 
-fun processor(): Flow<Unit> =
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor(): Flow<Unit> =
   sdk.events().consumeAsFlow()
     .map { handle(it) }
 ```
@@ -359,8 +513,24 @@ fun processor(): Flow<Unit> =
 # Process events in parallel
 
 <DrawnAnnotation text="launchIn" label="Drain in parallel within the `SuspendAppScope`" />
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<TypeHint :line="3" receiver="Application">
 
-```kotlin
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.serialization.Serializable
+
+fun processor(): Flow<Unit> = emptyFlow()
+
+// Example
 fun main() = SuspendApp {
   resourceScope {
     server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
@@ -372,34 +542,71 @@ fun main() = SuspendApp {
 }
 ```
 
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
 ---
 
 # Configuring your server
 
-<DrawnAnnotation text="@Serializable" label="Compiler plugin to generate serialization code" on="0" :geometry="{ label: { x: 0.4102, y: 0.2468 } }"/>
-<DrawnAnnotation text="getAs<Config>" label="Read, and deserialize the configuration" on="1"  :geometry="{ label: { x: 0.8351, y: 0.4198, width: 0.3115 } }"/>
+<DrawnAnnotation text="@Serializable" label="Compiler plugin to generate serialization code" on="0" :geometry="{ label: { x: 0.4348, y: 0.1982 } }"/>
+<DrawnAnnotation text="getAs<Config>" label="Read, and deserialize the configuration" on="1"  :geometry="{ label: { x: 0.8400, y: 0.4607, width: 0.3115 } }"/>
+<TypeHint :line="4" receiver="SuspendAppScope">
+<TypeHint :line="5" context="ResourceScope">
+<TypeHint :line="6" receiver="Application">
 
-```kotlin
-@Serializable data class Config(val host: String, val port: Int)
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.serialization.Serializable
+
+fun processor(): Flow<Unit> = emptyFlow()
+
+// Example
+@Serializable
+data class Config(val host: String, val port: Int)
 
 fun main() = SuspendApp {
   val config = ApplicationConfig("application.yaml").getAs<Config>()
   resourceScope {
     server(Netty, host = config.host, port = config.port) {
-      
+
     }
-    processor().launchIn(this)
+    processor().launchIn(this@SuspendApp)
     awaitCancellation()
   }
 }
+
 ```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
 
 ---
 
 # Configuring your Ktor server
 
-```kotlin
-fun Application.app(config: Config) {
+<TypeHint :line="2" receiver="ContentNegotiationConfig">
+<TypeHint :line="3" receiver="JsonBuilder">
+
+```kotlin ktor
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import kotlinx.serialization.json.Json
+
+fun Application.app() {
   install(ContentNegotiation) {
     json(Json {
       isLenient = true
@@ -409,12 +616,44 @@ fun Application.app(config: Config) {
 }
 ```
 
+</TypeHint>
+</TypeHint>
+
 ---
 
 # Configuring your Ktor server
 
-```kotlin
-fun Application.app(config: Config) {
+```kotlin ktor
+import io.ktor.http.ContentType
+import io.ktor.http.content.OutgoingContent
+import io.ktor.serialization.ContentConverter
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.util.reflect.TypeInfo
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.charsets.Charset
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+class CustomConverter : ContentConverter {
+  override suspend fun serialize(
+    contentType: ContentType,
+    charset: Charset,
+    typeInfo: TypeInfo,
+    value: Any?
+  ): OutgoingContent? = TODO("Not yet implemented")
+
+  override suspend fun deserialize(
+    charset: Charset,
+    typeInfo: TypeInfo,
+    content: ByteReadChannel
+  ): Any? = TODO("Not yet implemented")
+}
+
+//Example
+fun Application.app() {
   install(ContentNegotiation) {
     json(Json {
       isLenient = true
@@ -423,6 +662,160 @@ fun Application.app(config: Config) {
     register(ContentType.Application.Xml, CustomXmlConverter())
   }
 }
+```
+
+---
+
+# Ktor Routes using Spine
+
+```kotlin ktor
+import io.ktor.http.HttpStatusCode
+import opensavvy.spine.api.RootResource
+import opensavvy.spine.api.StaticResource
+import presentation.support.*
+
+data class CreateUser(val name: String)
+object UserAlreadyExists
+
+//Example
+object Api : RootResource("api") {                   // api
+  object Users : StaticResource<Api>("users", Api) { // api/users
+    val list by get()                                // GET /v3/users
+      .response<List<User>>()
+    
+    val create by post()                             // POST /api/users
+      .request<CreateUser>()
+      .response<User>() 
+      .failure<UserAlreadyExists>(HttpStatusCode.Conflict)
+  }
+}
+```
+
+---
+
+# Calling Ktor Spine routes
+
+```kotlin ktor
+import io.ktor.client.HttpClient
+import opensavvy.spine.api.div
+import opensavvy.spine.client.handle
+import opensavvy.spine.client.request
+import presentation.snippets.s01suspend.slide28.Api
+import presentation.snippets.s01suspend.slide28.Api.Users
+import presentation.snippets.s01suspend.slide28.Api.Users.create
+import presentation.snippets.s01suspend.slide28.CreateUser
+import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.support.*
+
+// Example
+suspend fun main() {
+  HttpClient {
+    /** HttpClient Configuration DSL */
+  }.use { client ->
+    client.request(Api / Users / create, CreateUser("johndoe"))
+      .handle(
+        { _: UserAlreadyExists -> println("User already exists") },
+        { _: User -> println("User created") }
+      )
+  }
+}
+
+```
+
+---
+
+# Ktor Routes using Spine
+
+```kotlin ktor
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.fail
+import presentation.snippets.s01suspend.slide28.Api
+import opensavvy.spine.server.route
+import opensavvy.spine.server.respond
+import presentation.snippets.s01suspend.slide28.CreateUser
+import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.support.*
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(createUser: CreateUser): Result = TODO()
+fun getAllUsers(): List<User> = emptyList()
+
+//Example
+fun Application.users() = routing {
+  route(Api.Users.create) {
+    when(val user = insertUser(body)) {
+      AlreadyExists -> fail(UserAlreadyExists)
+      is Success -> respond(user.user)
+    }
+  }
+  
+  route(Api.Users.list) {
+    val users = getAllUsers()
+    respond(users)
+  }
+}
+
+```
+
+---
+
+# Typed authentication
+
+```kotlin{1} ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtContext>("ktor-arrow-server") {
+        verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
+        validate {
+            val userId = it.getClaim("user_id", Long::class)
+            JwtUser(userId)
+        }
+    }
+```
+
+---
+
+# Typed authentication
+
+```kotlin ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtContext>("ktor-arrow-server") { }
+
+fun Application.users() = routing {
+  authenticateWith(jwt) {
+    route(Api.Users.list) {
+      val user = call.principal
+      val users = getAllUsers()
+      respond(users)
+    }
+  }
+}
+```
+
+---
+
+# Typed authentication
+
+```kotlin ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtContext>("ktor-arrow-server") { }
+
+fun Application.users() = routing {
+  authenticateWith(jwt) {
+    route(Api.Users.list) {
+      val user = call.principal
+      val users = getAllUsers()
+      respond(users)
+    }
+  }
+}
+
+context(handler: RoutingContext, ctx: PrincipalContext<P>)
+val <P : Any> ApplicationCall.principal: P
+get() = TODO()
 ```
 
 ---
@@ -519,7 +912,7 @@ https://api.ktor.io/ktor-server-core/io.ktor.server.application/-application/ind
 <DrawnAnnotation text="SuspendApp" />
 <DrawnAnnotation text="finally" />
 
-```kotlin
+```kotlin arrow
 import arrow.continuations.SuspendApp
 import kotlinx.coroutines.awaitCancellation
 
@@ -550,7 +943,7 @@ Source: https://arrow-kt.io/learn/coroutines/suspendapp/
 <DrawnAnnotation text="context(_: ResourceScope)" />
 <DrawnAnnotation text="source.close()" />
 
-```kotlin
+```kotlin arrow
 import arrow.fx.coroutines.ResourceScope
 import arrow.fx.coroutines.resource.context.install
 
@@ -579,7 +972,7 @@ Source: https://arrow-kt.io/learn/coroutines/resource-safety/
 <DrawnAnnotation text="eventSource(connector)" />
 <TypeHint text="resourceScope {" context="ResourceScope">
 
-```kotlin
+```kotlin arrow
 import arrow.continuations.SuspendApp
 import arrow.fx.coroutines.ResourceScope
 import arrow.fx.coroutines.resource.context.install

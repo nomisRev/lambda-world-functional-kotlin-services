@@ -24,7 +24,7 @@ a way to compose expected failures while keeping direct return values.
 <DrawnAnnotation text="Raise<MissingUser>" />
 <DrawnAnnotation text="raise(MissingUser(id))" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
 
@@ -50,7 +50,7 @@ Source: https://arrow-kt.io/learn/typed-errors/working-with-typed-errors/
 
 <DrawnAnnotation text="either" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.Either
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
@@ -85,7 +85,7 @@ swallowing cancellation; that is not what we are doing.
 <DrawnAnnotation text="context(Accumulate<String>)" />
 <DrawnAnnotation text="InvalidField(it, name)" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.NonEmptyList
 import arrow.core.raise.Accumulate
 import arrow.core.raise.context.Raise
@@ -120,7 +120,7 @@ Source: /Users/simonvergauwen/Developer/ktor-arrow-example/src/main/kotlin/io/gi
 <DrawnAnnotation text="private constructor" />
 <DrawnAnnotation text="validate(&quot;username&quot;)" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.raise.context.Raise
 
 @JvmInline
@@ -153,7 +153,7 @@ Source: /Users/simonvergauwen/Developer/ktor-arrow-example/src/main/kotlin/io/gi
 <DrawnAnnotation text="validate(::IncorrectInput)" />
 <DrawnAnnotation text="by accumulating" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.raise.context.Raise
 
 data class RegisterUserRequest(val username: String, val email: String) {
@@ -217,7 +217,7 @@ Source: https://github.com/Kotlin/KEEP/blob/main/proposals/KEEP-0462-rich-errors
 <DrawnAnnotation text="context(users: Users, logger: Logger, _: Raise<MissingUser>)" />
 <DrawnAnnotation text="suspend fun" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
 
@@ -248,7 +248,7 @@ not a claim of higher-kinded effect polymorphism or purity enforcement.
 <DrawnAnnotation text="object : Users" />
 <DrawnAnnotation text="either { greeting(UserId(42)) }" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.Either
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
@@ -290,7 +290,7 @@ No framework container is required for this substitution.
 <DrawnAnnotation text="with(users)" />
 <DrawnAnnotation text="either { greeting(UserId(id)) }" />
 
-```kotlin
+```kotlin arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
 import arrow.core.raise.either

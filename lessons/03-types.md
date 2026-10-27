@@ -104,7 +104,7 @@ https://openjdk.org/projects/valhalla/
 
 # Destructuring can follow property names
 
-> Experimental · `-Xname-based-destructuring=complete`
+> Experimental Kotlin 2.4.20 · `-Xname-based-destructuring=complete`
 
 <DrawnAnnotation text="val (email, name)" />
 
@@ -165,7 +165,7 @@ magic-move
 
 # The expected type resolves the case names
 
-> Context-sensitive resolution · compiler-enabled preview
+> Experimental Kotlin 2.4.20 · `-Xcontext-sensitive-resolution`
 
 <DrawnAnnotation text="is Granted if access.user.active" />
 
@@ -190,5 +190,6 @@ The subject's type supplies the namespace. Context-sensitive resolution is a
 separate feature from context parameters: here it shortens subtype names.
 Read the first branch left-to-right: match a Granted, refine access, then check
 its user's state. The unguarded Granted branch still handles a failed guard.
-Source: https://kotlinlang.org/docs/whatsnew24.html
+The version label matches this deck's compiler; the flag is enabled in build.gradle.kts.
+Source: https://kotlinlang.org/docs/whatsnew22.html#preview-of-context-sensitive-resolution
 -->
