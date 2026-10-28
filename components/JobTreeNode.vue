@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSlideContext } from '@slidev/client'
-import { broken, stateOf, stagger, type JobNode } from './jobTree'
+import { broken, ordinal, stateOf, stagger, type JobKind, type JobNode, type State } from './jobTree'
 
 const props = withDefaults(defineProps<{
   node: JobNode
   /** Position among its siblings, for the stagger. */
   index?: number
-}>(), { index: 0 })
+  /** This node is one entry of a scope's resource stack: its children hang off to the side. */
+  stacked?: boolean
+}>(), { index: 0, stacked: false })
 
 const { $clicks } = useSlideContext()
 
@@ -23,7 +25,7 @@ const childStates = computed(() => children.value.map(child => stateOf(child, $c
 const caption = computed(() => {
   if (kind.value !== 'resource') return ''
   switch (state.value) {
-    case 'running': return 'acquired'
+    case 'running': return props.node.order ? `acquired ${ordinal(props.node.order)}` : 'acquired'
     case 'finalising': return props.node.exit ? `release(ExitCase.${props.node.exit})` : 'releasing'
     case 'cancelling': return 'cancelling'
     case 'done': return 'released'
@@ -32,62 +34,90 @@ const caption = computed(() => {
   }
 })
 
+/**
+ * A scope holds its resources as a stack: acquired in order, released in
+ * reverse. They are drawn in acquisition order, as in the code, and the
+ * clicks release them from the bottom up.
+ */
+const stack = computed(() => kind.value === 'scope' && children.value.length > 0)
+const stackEntries = computed(() => children.value.map((child, index) => ({ child, index })))
+
+/** The colour of the edge towards one child, from that child's state. */
+const edgeClass = (childState: State, childKind: JobKind, both = true) => ({
+  'is-failed': childState === 'failed' && (!both || broken(state.value)),
+  'is-cancelled': (childState === 'cancelling' || childState === 'cancelled') && (!both || broken(state.value)),
+  'is-finalising': childState === 'finalising',
+  'is-released': childKind === 'resource' && childState === 'done',
+})
+
 /** One edge per child, from this node's bottom centre to the child's column centre. */
 const edges = computed(() => children.value.map((child, index) => {
   const count = children.value.length
   const x = ((index + 0.5) / count) * 100
-  const childState = childStates.value[index]
-  const childKind = child.kind ?? 'job'
   return {
     d: `M50 0 L${x} 20`,
-    visible: childState !== 'pending',
+    visible: childStates.value[index] !== 'pending',
     // A scope is reached by a suspending call, not owned as a child Job.
-    suspend: childKind === 'scope',
-    // The edge takes the child's colour once both ends are broken: red when
-    // the child failed, amber when it was cancelled, grey once a resource is released.
-    failed: childState === 'failed' && broken(state.value),
-    cancelled: (childState === 'cancelling' || childState === 'cancelled') && broken(state.value),
-    finalising: childState === 'finalising',
-    released: childKind === 'resource' && childState === 'done',
+    suspend: (child.kind ?? 'job') === 'scope',
   }
 }))
 </script>
 
 <template>
-  <div class="jobtree-branch">
-    <div
-      class="jobtree-node"
-      :class="[`is-${state}`, `kind-${kind}`]"
-      :style="{ '--jobtree-stagger': stagger(index) }"
-    >
-      <span class="jobtree-label">{{ node.label }}</span>
-      <small v-if="caption" class="jobtree-caption">{{ caption }}</small>
+  <div class="jobtree-branch" :class="{ 'is-stacked': stacked }">
+    <div class="jobtree-row">
+      <div
+        class="jobtree-node"
+        :class="[`is-${state}`, `kind-${kind}`]"
+        :style="{ '--jobtree-stagger': stagger(index) }"
+      >
+        <span class="jobtree-label">{{ node.label }}</span>
+        <small v-if="caption" class="jobtree-caption">{{ caption }}</small>
+      </div>
+      <template v-if="stacked && children.length">
+        <svg class="jobtree-tie" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+          <path
+            v-for="(child, i) in children"
+            :key="i"
+            d="M0 10 H100"
+            :class="{ 'is-visible': childStates[i] !== 'pending', ...edgeClass(childStates[i], child.kind ?? 'job', false) }"
+          />
+        </svg>
+        <div class="jobtree-side">
+          <JobTreeNode v-for="(child, i) in children" :key="i" :node="child" :index="i" />
+        </div>
+      </template>
     </div>
-    <svg
-      v-if="children.length"
-      class="jobtree-fan"
-      viewBox="0 0 100 20"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path
-        v-for="(edge, i) in edges"
-        :key="i"
-        :d="edge.d"
-        :class="{
-          'is-visible': edge.visible,
-          'is-suspend': edge.suspend,
-          'is-failed': edge.failed,
-          'is-cancelled': edge.cancelled,
-          'is-finalising': edge.finalising,
-          'is-released': edge.released,
-        }"
-        :style="{ transitionDelay: stagger(i) }"
-      />
-    </svg>
-    <div v-if="children.length" class="jobtree-children" :style="{ '--jobtree-columns': children.length }">
-      <JobTreeNode v-for="(child, i) in children" :key="i" :node="child" :index="i" />
-    </div>
+
+    <template v-if="!stacked && stack">
+      <svg class="jobtree-fan" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M50 0 V20" class="is-visible" :class="{ 'is-cancelled': broken(state) }" />
+      </svg>
+      <div class="jobtree-stack">
+        <JobTreeNode
+          v-for="{ child, index: i } in stackEntries"
+          :key="i"
+          :node="child"
+          :index="i"
+          stacked
+        />
+      </div>
+    </template>
+
+    <template v-else-if="!stacked && children.length">
+      <svg class="jobtree-fan" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+        <path
+          v-for="(edge, i) in edges"
+          :key="i"
+          :d="edge.d"
+          :class="{ 'is-visible': edge.visible, 'is-suspend': edge.suspend, ...edgeClass(childStates[i], children[i].kind ?? 'job') }"
+          :style="{ transitionDelay: stagger(i) }"
+        />
+      </svg>
+      <div class="jobtree-children" :style="{ '--jobtree-columns': children.length }">
+        <JobTreeNode v-for="(child, i) in children" :key="i" :node="child" :index="i" />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -98,6 +128,42 @@ const edges = computed(() => children.value.map((child, index) => {
   justify-items: center;
   width: 100%;
 }
+.jobtree-row {
+  display: flex;
+  align-items: center;
+}
+
+/* A scope's resources: one stack in acquisition order, released bottom-up. */
+.jobtree-stack {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.7rem;
+  background: rgb(121 84 246 / 7%);
+}
+.jobtree-branch.is-stacked { width: auto; justify-items: start; }
+.jobtree-branch.is-stacked > .jobtree-row > .jobtree-node { min-width: 12.5rem; }
+
+/* A stacked resource's own children sit beside their entry, tied by a short line. */
+.jobtree-tie {
+  flex: none;
+  width: 2rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--jobtree-running);
+  stroke-width: 2.5;
+}
+.jobtree-tie path {
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  transition: opacity 250ms ease, stroke 250ms ease;
+}
+.jobtree-tie path.is-visible { opacity: 1; }
+.jobtree-tie path.is-failed { stroke: var(--jobtree-failed); }
+.jobtree-tie path.is-cancelled { stroke: var(--jobtree-cancelled); stroke-dasharray: 6 5; }
+.jobtree-tie path.is-finalising { stroke: var(--jobtree-finalising); }
+.jobtree-side { display: grid; justify-items: center; }
 
 .jobtree-node {
   position: relative;
@@ -265,6 +331,7 @@ const edges = computed(() => children.value.map((child, index) => {
 }
 
 html.dark .jobtree-node { background: rgb(31 32 35 / 92%); }
+html.dark .jobtree-stack { background: rgb(170 138 255 / 10%); }
 html.dark .jobtree-node.is-done { color: #7fe0bd; }
 html.dark .jobtree-node.is-failed { color: #ff8fb0; }
 html.dark .jobtree-node.is-cancelled { color: #b9bbc2; }

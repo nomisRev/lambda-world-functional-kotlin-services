@@ -6,14 +6,13 @@ package presentation.snippets.s04errors.slide64
 import presentation.support.*
 
 @JvmInline
-value class Username private constructor(val value: String) {
+value class Email private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
-    operator fun invoke(value: String): Username =
+    operator fun invoke(value: String): Email =
       accumulate {
-        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
-        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
-        Username(value)
+        ensureOrAccumulate(value.contains("@")) { "Email is invalid" }
+        Email(value)
       }
   }
 }

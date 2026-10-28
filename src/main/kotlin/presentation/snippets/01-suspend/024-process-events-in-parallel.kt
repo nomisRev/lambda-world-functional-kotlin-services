@@ -15,6 +15,6 @@ object sdk {
 
 suspend fun processor() {
   sdk.events().consumeAsFlow()
-    .map { handle(it) }
+    .parMapUnordered(concurrency = 64) { handle(it) }
     .collect()
 }

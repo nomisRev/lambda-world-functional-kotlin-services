@@ -4,14 +4,11 @@
 package presentation.snippets.s01suspend.slide21
 
 import presentation.support.*
+import kotlinx.coroutines.Channel
 
-fun main() = SuspendApp {
-  resourceScope {
-    val dep = dependencies()
-    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
-      
-    }
-    launch { dep.processor() }
-    awaitCancellation()
+suspend fun processor() {
+  val events: Channel<Event> = sdk.events()
+  for (event in events) {
+    handle(event)
   }
 }

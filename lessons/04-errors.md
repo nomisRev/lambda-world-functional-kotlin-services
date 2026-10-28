@@ -107,7 +107,7 @@ suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User
 # Ktor Routes using Spine
 
 <TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" receiver="context(Raise<AlreadyExists>, Raise<InvalidUser>) TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
+<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
 <TypeHint :line="6" receiver="Transaction">
 <DrawnAnnotation text="Raise<UserAlreadyExists>"/>
 <DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
@@ -237,7 +237,8 @@ value class Username private constructor(val value: String) {
 
 <TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="ensureOrAccumulate" />
-<DrawnAnnotation text="ensureOrAccumulate" :occurrence="2" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5279, y: 0.7138 }, connector: { type: 'quadratic', start: { x: 0.1366, y: 0.5590 }, control: { x: 0.1389, y: 0.6177 }, end: { x: 0.1366, y: 0.6880 } } }"/>
+<DrawnAnnotation text="ensureOrAccumulate":occurrence="2" />
+<DrawnAnnotation text="ensureOrAccumulate" :occurrence="3" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5382, y: 0.7478 }, connector: { type: 'quadratic', start: { x: 0.3209, y: 0.6066 }, control: { x: 0.3241, y: 0.6602 }, end: { x: 0.3209, y: 0.7270 } } }"/>
 
 ```kotlin arrow
 @JvmInline
@@ -318,6 +319,8 @@ magic-move
 # Validation
 
 <TypeHint :line="8" context="Accumulate<String>, Raise<String>">
+<DrawnAnnotation text="accumulating" />
+<DrawnAnnotation text="accumulating" occurrence="2" label="Lift `Raise<NonEmptyList<String>>` into `Accumulate<String>`"  :connect="true" :geometry="{ label: { x: 0.6418, y: 0.7430 } }"/>
 
 ```kotlin{8-12} arrow
 data class CreateUser(val username: Username, val email: Email)
@@ -370,11 +373,12 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
 
 # Call directly in the route 
 
-<DrawnAnnotation text="toCreateUser" />
+<DrawnAnnotation text="toCreateUser" :connect="true" :geometry="{ connector: { type: 'quadratic', start: { x: 0.4383, y: 0.3157 }, control: { x: 0.5142, y: 0.3131 }, end: { x: 0.6110, y: 0.2665 } } }"/>
+<TypeHint :line="2" context="Raise<InvalidUser>, Raise<UserAlreadyExists>" >
 
 ```kotlin
 fun Application.users() = routing {
-  route(Api.Users.create) {
+  routeWithRaise(Api.Users.create) {
     val create = body.toCreateUser()
     when(val result = insertUser(create)) {
       is Success -> respond(result.user)
@@ -383,6 +387,8 @@ fun Application.users() = routing {
   }
 }
 ```
+
+</TypeHint>
 
 ---
 

@@ -4,11 +4,17 @@
 package presentation.snippets.s01suspend.slide23
 
 import presentation.support.*
-import kotlinx.coroutines.Channel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
 
 suspend fun processor() {
-  val events: Channel<Event> = sdk.events()
-  for (event in events) {
-    handle(event)
-  }
+  sdk.events().consumeAsFlow()
+    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
+    .collect()
 }

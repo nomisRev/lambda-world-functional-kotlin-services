@@ -6,4 +6,13 @@ package presentation.snippets.s04errors.slide61
 import presentation.support.*
 
 @JvmInline
-value class Username(val value: String)
+value class Username private constructor(val value: String) {
+  companion object {
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Username {
+      ensure(value.length >= 4) { ["Username is too short"] }
+      ensure(value.length <= 255) { ["Username is too long"] }
+      return Username(value)
+    }
+  }
+}

@@ -245,3 +245,6 @@ html.dark { --fundamentals-cancel: #fbbf24; --fundamentals-finalise: #5cc8ff; }
    slide to the tree. Keep those snippets under 48 columns. */
 .slidev-layout.job-slide .slidev-code-wrapper { width: calc(100% - 33rem); }
 .slidev-layout.job-slide .jobtree { position: absolute; top: 9rem; right: 4rem; width: 31rem; }
+/* Three resources side by side: a little wider, a little smaller, up to the code window's edge. */
+.slidev-layout.job-slide-wide .jobtree { width: 35rem; right: 2rem; font-size: 0.95rem; }
+.slidev-layout.job-slide-wide .jobtree-fan { height: 2.4rem; }

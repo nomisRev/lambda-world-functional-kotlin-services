@@ -5,14 +5,12 @@ package presentation.snippets.s04errors.slide66
 
 import presentation.support.*
 
-@JvmInline
-value class Email private constructor(val value: String) {
-  companion object {
-    context(_: Raise<NonEmptyList<String>>)
-    operator fun invoke(value: String): Email =
-      accumulate {
-        ensureOrAccumulate(value.contains("@")) { "Email is invalid" }
-        Email(value)
-      }
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<NonEmptyList<String>>)
+fun CreateUserRequest.toCreateUser(): CreateUser =
+  withError({ errors: NonEmptyList<NonEmptyList<String>> ->
+    it.reduce { acc, errors -> acc + errors }
+  }) {
+    
   }
-}

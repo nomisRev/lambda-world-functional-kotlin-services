@@ -13,8 +13,8 @@ object sdk {
   fun events(): Channel<Event> = Channel()
 }
 
-suspend fun processor() {
+suspend fun processor(): Flow<Unit> =
   sdk.events().consumeAsFlow()
     .parMap(concurrency = 64) { handle(it) }
-    .collect()
-}
+    .retry(3) { cause -> cause is RetryiableException }
+    .buffer(100)

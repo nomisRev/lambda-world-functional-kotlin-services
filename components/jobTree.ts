@@ -31,6 +31,8 @@ export interface JobNode {
   finalising?: number
   /** How the scope around a resource ended, named in its release caption; without it the caption just says `releasing`. */
   exit?: 'Completed' | 'Cancelled' | 'Failure'
+  /** Position among the resources of its scope, 1-based: they release in reverse. */
+  order?: number
   /** Click at which it has finished cancelling. Without `cancelling`, both happen at once. */
   cancelled?: number
   children?: JobNode[]
@@ -47,6 +49,9 @@ export function stateOf(node: JobNode, click: number): State {
   if (click >= (node.at ?? 0)) return 'running'
   return 'pending'
 }
+
+export const ordinal = (n: number) =>
+  `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] ?? 'th'}`
 
 export const broken = (state: State) =>
   state === 'failed' || state === 'cancelling' || state === 'cancelled'

@@ -200,13 +200,16 @@ val iterable: Iterable<String> = ["a", "bb", "ccc"]
 
 # Custom collection literals
 
-<InlineCompilerError text="[&quot;a&quot;, &quot;bb&quot;, &quot;ccc&quot;]" message="TODO">
+<InlineCompilerError text="[&quot;a&quot;, &quot;bb&quot;, &quot;ccc&quot;]" message="`NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`">
 
 ```kotlin
 data class NonEmptyList<A>(val head: A, val tail: List<A>)
 
+val literal: NonEmptyList<String> =
+  
+  ["a", "bb", "ccc"]
+
 val nonEmptyList = NonEmptyList("a", ["bb", "ccc"])
-val literal = ["a", "bb", "ccc"]
 ```
 
 </InlineCompilerError>
@@ -215,19 +218,26 @@ val literal = ["a", "bb", "ccc"]
 
 # Custom collection literals
 
-<InlineCompilerError text="NonEmptyList(&quot;a&quot;, [&quot;bb&quot;, &quot;ccc&quot;])" message="TODO">
+<InlineCompilerError text="NonEmptyList(&quot;a&quot;, [&quot;bb&quot;, &quot;ccc&quot;])" message="`constructor<A>(head: A, tail: List<A>): NonEmptyList<A>` is private">
+<InlineCompilerError text="[]" message="No value passed for parameter `head`">
 
 ```kotlin
 data class NonEmptyList<A> private constructor(val head: A, val tail: List<A>) {
   companion object {
-    operator fun <A> invoke(head: A, tail: List<A>): NonEmptyList<A> = NonEmptyList(head, tail)
+    operator fun <A> of(head: A, vararg tail: A) =
+      NonEmptyList(head, tail.toList())
   }
 }
 
-val nonEmptyList = NonEmptyList("a", ["bb", "ccc"])
 val literal = ["a", "bb", "ccc"]
+
+val nonEmptyList =
+  NonEmptyList("a", ["bb", "ccc"])
+
+val empty = []
 ```
 
+</InlineCompilerError>
 </InlineCompilerError>
 
 ---

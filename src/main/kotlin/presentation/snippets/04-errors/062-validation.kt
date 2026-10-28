@@ -9,6 +9,11 @@ import presentation.support.*
 value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
-    operator fun invoke(value: String): Username = TODO()
+    operator fun invoke(value: String): Username =
+      accumulate {
+        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
+        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
+        Username(value)
+      }
   }
 }

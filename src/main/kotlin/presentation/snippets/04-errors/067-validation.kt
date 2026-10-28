@@ -8,4 +8,13 @@ import presentation.support.*
 data class CreateUser(val username: Username, val email: Email)
 
 context(_: Raise<NonEmptyList<String>>)
-fun CreateUserRequest.toCreateUser(): CreateUser = TODO()
+fun CreateUserRequest.toCreateUser(): CreateUser =
+  withError({ errors: NonEmptyList<NonEmptyList<String>> ->
+    it.reduce { acc, errors -> acc + errors }
+  }) {
+    accumulate {
+      val username by accumulating { Username(username) }
+      val email by accumulating { Email(email) }
+      User(username, email)
+    }
+  }

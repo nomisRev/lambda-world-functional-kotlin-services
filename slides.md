@@ -47,18 +47,11 @@ kodee: wave
 
 # What?
 
-1. Suspend and compose work
-2. Ask for capabilities
-3. Model the service
-4. Make errors part of the contract
+1. Suspend and composing lifecycle
+2. Constraining functions to a context
+3. Domain modelling
+4. Errors as part of the contract
 
-<!--
-
-For orientation only: Scala's IO and ZIO, and Haskell's IO, are familiar places to
-think about effectful programs. Today we will follow Kotlin's suspend functions.
-Do not claim suspend is a pure effect type: it tracks suspension, and an ordinary
-Kotlin function can still perform effects. We will build the useful capabilities.
--->
 
 ---
 src: ./lessons/01-suspend.md

@@ -5,12 +5,19 @@ package presentation.snippets.s04errors.slide68
 
 import presentation.support.*
 
+@JvmInline
+value class InvalidUser(val errors: NonEmptyList<String>)
+
 data class CreateUser(val username: Username, val email: Email)
 
-context(_: Raise<NonEmptyList<String>>)
+context(_: Raise<InvalidUser>)
 fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
-    it.reduce { acc, errors -> acc + errors }
+    InvalidUser(it.reduce { acc, errors -> acc + errors })
   }) {
-    
+    accumulate {
+      val username by accumulating { Username(username) }
+      val email by accumulating { Email(email) }
+      User(username, email)
+    }
   }

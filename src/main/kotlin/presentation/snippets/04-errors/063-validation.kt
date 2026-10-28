@@ -9,10 +9,12 @@ import presentation.support.*
 value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
-    operator fun invoke(value: String): Username {
-      ensure(value.length >= 4) { ["Username is too short"] }
-      ensure(value.length <= 255) { ["Username is too long"] }
-      return Username(value)
-    }
+    operator fun invoke(value: String): Username =
+      accumulate {
+        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
+        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
+        ensureOrAccumulate(value.matches(Regex("[a-zA-Z0-9]+"))) { "Username is invalid" }
+        Username(value)
+      }
   }
 }

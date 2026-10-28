@@ -5,16 +5,7 @@ package presentation.snippets.s04errors.slide65
 
 import presentation.support.*
 
-@JvmInline
-value class Username private constructor(val value: String) {
-  companion object {
-    context(_: Raise<NonEmptyList<String>>)
-    operator fun invoke(value: String): Username =
-      accumulate {
-        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
-        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
-        ensureOrAccumulate(value.matches(Regex("[a-zA-Z0-9]+"))) { "Username is invalid" }
-        Username(value)
-      }
-  }
-}
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<NonEmptyList<String>>)
+fun CreateUserRequest.toCreateUser(): CreateUser = TODO()

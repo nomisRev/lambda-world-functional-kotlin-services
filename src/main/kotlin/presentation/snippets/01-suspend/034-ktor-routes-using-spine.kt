@@ -4,27 +4,32 @@
 package presentation.snippets.s01suspend.slide34
 
 import presentation.support.*
-import io.ktor.http.HttpStatusCode
-import opensavvy.spine.api.RootResource
-import opensavvy.spine.api.StaticResource
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.fail
+import presentation.snippets.s01suspend.slide28.Api
+import opensavvy.spine.server.route
+import opensavvy.spine.server.respond
+import presentation.snippets.s01suspend.slide28.CreateUser
+import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.CreateUser
+import presentation.snippets.s01suspend.slide32.UserAlreadyExists
 
-data class CreateUser(val name: String)
+sealed interface Result
 
-object UserAlreadyExists
+data class Success(val user: User) : Result
 
-object InvalidUser {
-  val errors: List<String> = ["username too short", "email doesn't contain @"]
-}
+data object AlreadyExists : Result
 
-object Api : RootResource("api") {                   // api
-  object Users : StaticResource<Api>("users", Api) { // api/users
-    val list by get()                                // GET /v3/users
-      .response<List<User>>()
-    
-    val create by post()                             // POST /api/users
-      .request<CreateUser>()
-      .response<User>() 
-      .failure<UserAlreadyExists>(HttpStatusCode.Conflict)
-      .failure<InvalidUser>(HttpStatusCode.UnprocessableEntity)
+fun insertUser(createUser: CreateUser): Result = TODO()
+
+fun Application.users() = routing {
+  routeWithRaise(Api.Users.create) {
+    when(val result = insertUser(body)) {
+      is Success -> respond(result.user)
+      AlreadyExists -> fail(UserAlreadyExists)
+    }
   }
 }
