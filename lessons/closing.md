@@ -10,14 +10,7 @@ kodee: wave
 - `context` → required capabilities
 - Domain types and `Raise` → values and expected failures
 
-> **Dependencies and errors are part of the function signature.**
-
-<!--
-
-We started with a function, then composed asynchronous work, cancellation,
-resources, authentication, data, and errors. The business program asks for what
-it needs; the boundary supplies and interprets it.
--->
+> **Everything composes together**
 
 ---
 layout: intro

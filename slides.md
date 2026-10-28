@@ -30,7 +30,7 @@ kodee: welcome
 
 # Functional Kotlin Services
 
-## Simon Vergauwen · JetBrains
+## Simon Vergauwen · Arrow-kt · JetBrains
 
 <!--
 
@@ -55,15 +55,6 @@ kodee: wave
 
 ---
 src: ./lessons/01-suspend.md
----
----
-src: ./lessons/07-service.md
----
----
-src: ./lessons/03-types.md
----
----
-src: ./lessons/04-errors.md
 ---
 ---
 src: ./lessons/closing.md

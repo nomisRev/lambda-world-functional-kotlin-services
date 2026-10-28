@@ -28,8 +28,6 @@ dependencies {
   implementation("dev.opensavvy.spine:server-arrow:0.12.1")
   implementation("dev.opensavvy.spine:client:0.12.1")
 
-
-
   testImplementation(kotlin("test"))
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
   testImplementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.20")

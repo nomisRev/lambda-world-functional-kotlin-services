@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSlideContext } from '@slidev/client'
-import { describe, type JobNode } from './jobTree'
+import { describe, type JobNode } from '../lib/jobTree'
 
 /**
  * The Job hierarchy beside a snippet, staged by the slide's clicks. See
- * `jobTree.ts` for the node model; nodes nest through `children`, and a node's
+ * `lib/jobTree.ts` for the node model; nodes nest through `children`, and a node's
  * `kind` tells a coroutine from a suspending scope from an installed resource.
  */
 const props = withDefaults(defineProps<{

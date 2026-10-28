@@ -186,7 +186,7 @@ clicks: 6
 
 <DrawnAnnotation text="resourceScope" label="Scope for resource management" on="0"  :geometry="{ label: { x: 0.4293, y: 0.3527 } }"/>
 <DrawnAnnotation text="server" label="`install` a server into the `resourceScope`" on="1"  :geometry="{ label: { x: 0.3171, y: 0.3490 } }"/>
-<DrawnAnnotation text="awaitCancellation" label="Await `SIGTERM`/`SIGINT` which cancels the `SuspendApp`\n-> cancels and awaits the running `suspend` lambda and `CoroutineScope`" on="2"  :geometry="{ label: { x: 0.4509, y: 0.5137 } }"/>
+<DrawnAnnotation text="awaitCancellation" label="Await `SIGTERM`/`SIGINT` which cancels the `SuspendApp`\n-> cancels and awaits the running `suspend` lambda and `CoroutineScope`" on="2"  :geometry="{ label: { x: 0.4765, y: 0.6209 } }" :connect="true"/>
 <TypeHint :line="1" receiver="SuspendAppScope">
 <TypeHint :line="2" context="ResourceScope">
 <SuspendGutter :lines="[2,3,6]">
@@ -1573,4 +1573,500 @@ fun Application.users(database: Database) = routing {
 </TypeHint>
 
 ---
+class: job-slide job-slide-wide
+---
 
+# Processors finish before dependencies close
+
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<SuspendGutter :lines="[2,3,4,5,8,9]">
+
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.ResourceScope
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import java.lang.System.getenv
+
+val host: String = getenv("HOST")
+val port: Int = getenv("PORT").toInt()
+
+class Dependencies {
+  suspend fun processor(): Unit = awaitCancellation()
+  suspend fun close(): Unit = Unit
+}
+
+suspend fun ResourceScope.dependencies(): Dependencies =
+  install({ Dependencies() }) { dep, _ -> dep.close() }
+
+suspend fun ResourceScope.coroutineScope(): CoroutineScope =
+  install({ CoroutineScope(SupervisorJob() + Dispatchers.Default) }) { scope, _ ->
+    scope.coroutineContext.job.cancelAndJoin()
+  }
+
+// Example
+fun main() = SuspendApp {
+  resourceScope {
+    val dep = dependencies()
+    val scope = coroutineScope()
+    server(Netty, host = host, port = port) {
+      users(dep.database)
+    }
+    scope.launch { dep.processor() }
+    awaitCancellation()
+  }
+}
+```
+
+</SuspendGutter>
+</TypeHint>
+</TypeHint>
+
+<JobTree
+:root="{ label: 'SuspendApp' }"
+:children="[
+{
+label: 'resourceScope', kind: 'scope',
+children: [
+{ label: 'dependencies()', kind: 'resource' },
+{
+label: 'coroutineScope()', kind: 'resource',
+children: [{ label: 'launch { dep.processor() }' }],
+},
+{ label: 'server(Netty)', kind: 'resource' },
+],
+},
+]"
+:cancel="1"
+cancel-label="SIGTERM"
+/>
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="Channel<Event>" label="KotlinX Coroutines suspending Queue" on="0"  :geometry="{ label: { x: 0.5182, y: 0.3454 } }"/>
+<DrawnAnnotation text="for (event in events)" label="Suspending iterator" on="1"  :geometry="{ label: { x: 0.3758, y: 0.3484 } }"/>
+<SuspendGutter :lines="[3, 4]">
+
+```kotlin
+import kotlinx.coroutines.Channel
+
+suspend fun processor() {
+  val events: Channel<Event> = sdk.events()
+  for (event in events) {
+    handle(event)
+  }
+}
+```
+
+</SuspendGutter>
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="consumeAsFlow" label="Flow is a concurrent stream" on="0"  :geometry="{ label: { x: 0.4948, y: 0.3006 } }"/>
+<DrawnAnnotation text="map" label="Supports `suspend`" on="1"  :geometry="{ label: { x: 0.3781, y: 0.3645 }, connector: { type: 'quadratic', start: { x: 0.1471, y: 0.3139 }, control: { x: 0.2469, y: 0.3147 }, end: { x: 0.2928, y: 0.3436 } } }" :connect="true"/>
+<DrawnAnnotation text="collect" label="Drain the `Flow`, `suspend` awaits until entire `Flow` is drained" on="2"  :geometry="{ label: { x: 0.4747, y: 0.3914 }, connector: { type: 'quadratic', start: { x: 0.1522, y: 0.3724 }, control: { x: 0.1703, y: 0.3995 }, end: { x: 0.1921, y: 0.3955 } } }" :connect="true"/>
+<SuspendGutter :lines="[3,4]">
+
+```kotlin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor() {
+  sdk.events().consumeAsFlow()
+    .map { handle(it) }
+    .collect()
+}
+```
+
+</SuspendGutter>
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="suspend {" />
+<DrawnAnnotation text="asFlow()" label="Manually lift `suspend` to `Flow` to access parallelism"  :connect="true" :geometry="{ label: { x: 0.6792, y: 0.4651 } }"/>
+
+```kotlin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor() {
+  sdk.events().consumeAsFlow()
+    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
+    .collect()
+}
+```
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="parMapUnordered" label="Equivalent of `flatMapMerge`, ordering comes at a cost"  :connect="true" :geometry="{ label: { x: 0.3483, y: 0.4651 } }"/>
+
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor() {
+  sdk.events().consumeAsFlow()
+    .parMapUnordered(concurrency = 64) { handle(it) }
+    .collect()
+}
+```
+
+---
+
+# Process events in parallel
+
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor() {
+  sdk.events().consumeAsFlow()
+    .parMap(concurrency = 64) { handle(it) }
+    .collect()
+}
+```
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
+
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor(): Flow<Unit> =
+  sdk.events().consumeAsFlow()
+    .parMap(concurrency = 64) { handle(it) }
+```
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="retry" />
+<DrawnAnnotation text="buffer" label="Typical streaming operators available, easy to build your own\nArrow Fx Coroutines has additional ones like `parMap`"  :connect="true" :geometry="{ label: { x: 0.5186, y: 0.6001 }, connector: { type: 'quadratic', start: { x: 0.1805, y: 0.5487 }, control: { x: 0.2197, y: 0.5556 }, end: { x: 0.2311, y: 0.5791 } } }"/>
+
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor(): Flow<Unit> =
+  sdk.events().consumeAsFlow()
+    .parMap(concurrency = 64) { handle(it) }
+
+suspend fun program(): Unit {
+  processor()
+    .retry(3) { cause -> cause is RetryiableException }
+    .buffer(100)
+    .collect()
+}
+
+```
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="onCompletion" label="We can backpressure SuspendApp process on exit"  :connect="true" :geometry="{ label: { x: 0.4629, y: 0.6593 } }"/>
+
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor(): Flow<Unit> =
+  sdk.events().consumeAsFlow()
+    .parMap(concurrency = 64) { handle(it) }
+
+suspend fun program(): Unit {
+  processor()
+    .retry(3) { cause -> cause is RetryiableException }
+    .buffer(100)
+    .onCompletion { withContext(NonCancellable) { delay(10.seconds) } }
+    .collect()
+}
+
+```
+
+---
+
+# `async` starts independent work
+
+<DrawnAnnotation text="coroutineScope" />
+<DrawnAnnotation text="async" />
+<DrawnAnnotation text="async" occurrence="2" />
+<DrawnAnnotation text="await()"/>
+<DrawnAnnotation text="await()" occurrence="2" />
+<TypeHint :line="1" receiver="Routing">
+<TypeHint :line="2" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
+<TypeHint :line="4" receiver="CoroutineScope">
+
+
+```kotlin{4-8} ktor
+import presentation.support.*
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.CreateUser
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(create: CreateUser): Result = TODO()
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User = TODO()
+  
+//Example
+fun Application.users(database: Database) = routing {
+  routeWithRaise(Api.Users.create) {
+    val create = body.toCreateUser()
+    val userWithProfile = coroutineScope {
+        val user = async { transaction(database) { insertUser(create) } }
+        val profile = async { transaction(database) { createProfile(create) } }
+        user.await().withProfile(profile.await())
+    }
+    respond(userWithProfile)
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+<!--
+
+Both children start before we await. This is concurrent; actual parallel
+execution depends on the dispatcher and work. The enclosing coroutineScope waits
+for its children. A failing child cancels its sibling, and cancelling the caller
+cancels both: structured concurrency makes ownership visible in the block.
+Source: https://kotlinlang.org/docs/composing-suspending-functions.html
+-->
+
+---
+
+# Typed authentication
+
+<TypeHint :line="1" receiver="Routing">
+<TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.fail
+import presentation.snippets.s01suspend.slide28.Api
+import opensavvy.spine.server.route
+import opensavvy.spine.server.respond
+import presentation.snippets.s01suspend.slide28.CreateUser
+import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.support.*
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(createUser: CreateUser): Result = TODO()
+fun getAllUsers(): List<User> = emptyList()
+
+//Example
+fun Application.users() = routing {
+  route(Api.Users.list) {
+    val users = getAllUsers()
+    respond(users)
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+
+---
+
+# Typed authentication
+
+<DrawnAnnotation text="JwtUser" :line="1" />
+<DrawnAnnotation text="JwtUser" :line="2" />
+<DrawnAnnotation text="JwtUser" :line="6" label="The `principal` is typed"  :connect="true" :geometry="{ label: { x: 0.2966, y: 0.5147 } }"/>
+
+```kotlin ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtUser>("ktor-arrow-server") {
+        verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
+        validate {
+            val userId = it.getClaim("user_id", Long::class)
+            JwtUser(userId)
+        }
+    }
+```
+
+---
+
+# Typed authentication
+
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
+<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin{1,5,6,10,11|7} ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtContext>("ktor-arrow-server") { }
+
+fun Application.users() = routing {
+  authenticateWith(jwt) {
+    route(Api.Users.list) {
+      val user = call.principal
+      val users = getAllUsers()
+      respond(users)
+    }
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+---
+magic-move
+---
+
+# Typed authentication
+
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
+<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin{7,14-16} ktor 
+val jwt: AuthenticationScheme<JwtUser, Unit> =
+    jwt<JwtContext>("ktor-arrow-server") { }
+
+fun Application.users() = routing {
+  authenticateWith(jwt) {
+    route(Api.Users.list) {
+      val user = call.principal
+      val users = getAllUsers()
+      respond(users)
+    }
+  }
+}
+
+context(ctx: PrincipalContext<P>)
+val <P : Any> ApplicationCall.principal: P
+  get() = ctx.principal(this)
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+---
+
+# Typed authentication
+
+<TypeHint :line="5" receiver="Routing">
+<TypeHint :line="6" context="context(RolesContext<JwtUser, JwtRole>, PrincipalContext<JwtUser>, Unit)">
+<TypeHint :line="7" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+<DrawnAnnotation text="SchemeWithRoles<JwtUser, JwtRole" label="Roles become part of the typed scheme too"  :connect="true" :geometry="{ label: { x: 0.6637, y: 0.3117 }, connector: { type: 'quadratic', start: { x: 0.5634, y: 0.2278 }, control: { x: 0.5649, y: 0.2560 }, end: { x: 0.5634, y: 0.2908 } } }"/>
+<DrawnAnnotation text="roles = [Role.Admin]" />
+<DrawnAnnotation text="call.roles" />
+
+```kotlin{1-3,6-13} ktor 
+val jwt: AuthenticationSchemeWithRoles<JwtUser, JwtRole, Unit, AuthenticationScheme<JwtUser, Unit>> =
+    jwt<JwtContext>("ktor-arrow-server") { }
+      .withRoles { it.roles }
+
+fun Application.users() = routing {
+  authenticateWith(jwt, roles = [Role.Admin]) {
+    route(Api.Users.list) {
+      val user = call.principal
+      val roles = call.roles
+      val users = getAllUsers()
+      respond(users)
+    }
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>

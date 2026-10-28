@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSlideContext } from '@slidev/client'
-import { broken, ordinal, stateOf, stagger, type JobKind, type JobNode, type State } from './jobTree'
+import { broken, ordinal, stateOf, stagger, type JobKind, type JobNode, type State } from '../lib/jobTree'
 
 const props = withDefaults(defineProps<{
   node: JobNode
