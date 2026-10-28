@@ -32,14 +32,6 @@ fun greeting(user: User?): String =
 
 </SmartCast>
 
-<!--
-
-The compiler knows this stable local parameter cannot be null after the early
-return. No manual unwrapping. Smart casts also follow type checks and control
-flow, provided the value cannot change between the check and use.
-Source: https://kotlinlang.org/docs/typecasts.html
--->
-
 ---
 magic-move
 ---
@@ -239,5 +231,124 @@ val empty = []
 
 </InlineCompilerError>
 </InlineCompilerError>
+
+---
+
+# `Raise` adds an expected error to the signature
+
+<DrawnAnnotation text="catch" on="0" />
+<DrawnAnnotation text="PLSQLException" on="0" label="`catch` specific errors and lift them to type signature"  :connect="true" :geometry="{ label: { x: 0.6281, y: 0.5964 }, connector: { type: 'quadratic', start: { x: 0.3260, y: 0.6474 }, control: { x: 0.3667, y: 0.6510 }, end: { x: 0.3826, y: 0.6154 } } }"/>
+<DrawnAnnotation text="Raise<UserAlreadyExists>" on="1" />
+<DrawnAnnotation text="raise(UserAlreadyExists(" on="1" label="Raise error into `context(Raise<UserAlreadyExists>)`"  :connect="true" :geometry="{ label: { x: 0.6246, y: 0.7644 } }"/>
+
+```kotlin{1,3-5,10-13} arrow
+import arrow.core.raise.Raise
+import arrow.core.raise.context.raise
+
+value class UserAlreadyExists(val username: String)
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException -> 
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
+```
+
+---
+
+# Handling the error supplies `Raise`
+
+<TypeHint :line="3" context="Raise<UserAlreadyExists>">
+<TypeHint :line="9" context="Raise<UserAlreadyExists>">
+
+```kotlin arrow
+import arrow.core.raise.Raise
+import arrow.core.raise.context.raise
+
+value class UserAlreadyExists(val username: String)
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException ->
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
+
+// Example
+context(_: Transaction)
+suspend fun insertUserOrNull(create: CreateUser): User? =
+  recover({
+    insertUser(create)
+  }) { _ -> null }
+
+context(_: Transaction)
+suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User> =
+  either {
+    insertUser(create)
+  }
+```
+
+</TypeHint>
+</TypeHint>
+
+---
+
+# Ktor Routes using Spine
+
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
+<TypeHint :line="7" receiver="Transaction">
+<DrawnAnnotation text="Raise<UserAlreadyExists>"/>
+<DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
+<DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
+<DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
+
+
+```kotlin ktor
+import presentation.support.*
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.CreateUser
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(create: CreateUser): Result = TODO()
+
+//Example
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User = TODO()
+  
+fun Application.users(database: Database) = routing {
+  routeWithRaise(Api.Users.create) {
+    val create = body.toCreateUser()
+    val user = transaction(database) {
+      insertUser(create)
+    }
+    respond(user)
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
 
 ---

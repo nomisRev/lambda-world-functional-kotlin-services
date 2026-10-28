@@ -57,6 +57,9 @@ kodee: wave
 src: ./lessons/01-suspend.md
 ---
 ---
+src: ./lessons/07-service.md
+---
+---
 src: ./lessons/03-types.md
 ---
 ---

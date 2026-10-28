@@ -170,95 +170,60 @@ suspend fun program(): Unit {
 
 ---
 
-# `suspend` is Continuation Passing Style
 
-<SuspendGutter :lines="[2]">
+
+# `async` starts independent work
+
+<DrawnAnnotation text="coroutineScope" />
+<DrawnAnnotation text="async" />
+<TypeHint text="coroutineScope {" receiver="CoroutineScope">
 
 ```kotlin
-suspend fun events(): List<Event> =
-  suspendCoroutine { cont: Continuation<List<Event>> ->
-    
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
+suspend fun greetings(users: Users, first: UserId, second: UserId) =
+  coroutineScope {
+    val ada = async { users.find(first) }
+    val grace = async { users.find(second) }
+    listOf(ada.await()?.name, grace.await()?.name)
   }
 ```
 
-</SuspendGutter>
+</TypeHint>
+
+<!--
+
+Both children start before we await. This is concurrent; actual parallel
+execution depends on the dispatcher and work. The enclosing coroutineScope waits
+for its children. A failing child cancels its sibling, and cancelling the caller
+cancels both: structured concurrency makes ownership visible in the block.
+Source: https://kotlinlang.org/docs/composing-suspending-functions.html
+-->
 
 ---
 
-# `suspend` is Continuation Passing Style
+# `launch` gives a child a lifetime
 
-<SuspendGutter :lines="[2]">
-<DrawnAnnotation text="cont.resume(events)" on="0" />
-<DrawnAnnotation text="cont.resumeWithException(error)" on="1" />
-
-```kotlin
-suspend fun events(): List<Event> =
-  suspendCoroutine { cont ->
-    sdk.fetchEvents(object : EventHandler() {
-      override fun onSuccess(events: List<Event>) = cont.resume(events)
-      override fun onFailure(error: Throwable) = cont.resumeWithException(error)
-    })
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `suspend` is cancellable
-
-<DrawnAnnotation text="call" />
-<DrawnAnnotation text="invokeOnCancellation { call.cancel() }" />
+<DrawnAnnotation text="launch" />
+<DrawnAnnotation text="coroutineScope" />
 
 ```kotlin
-suspend fun events(): List<Event> =
-  suspendCoroutineCancellable { cont ->
-    val call = sdk.fetchEvents(object : EventHandler() {
-      override fun onSuccess(events: List<Event>) = cont.resume(events)
-      override fun onFailure(error: Throwable) = cont.resumeWithException(error)
-    })
-    cont.invokeOnCancellation { call.cancel() }
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+
+suspend fun processBatch(events: List<Event>) = coroutineScope {
+  for (event in events) {
+    launch { handle(event) }
   }
+}
 ```
 
----
+<!--
 
-# `suspend` is cancellable
-
-<DrawnAnnotation text="ensureActive()" label="Check cancellation, and stop if case of cancellation" />
-<SuspendGutter :lines="[3]">
-
-```kotlin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-
-suspend fun ByteArray.checksum() =
-  foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) currentCoroutineContext().ensureActive()
-    acc * 31 + byte
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `suspend` is cancellable
-
-<DrawnAnnotation text="yield()" label="Fairness operator, reschedule yourself to allow interleaving of tasks" />
-<SuspendGutter :lines="[3]">
-
-```kotlin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-
-suspend fun ByteArray.checksum() =
-  foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) yield()
-    acc * 31 + byte
-  }
-```
-
-</SuspendGutter>
+launch gives a Job rather than a result. This function still waits for the whole
+batch because the children belong to this scope. Keep this a small batch;
+unbounded inputs need bounded concurrency and backpressure.
+-->
 
 ---
