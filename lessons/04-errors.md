@@ -21,314 +21,387 @@ a way to compose expected failures while keeping direct return values.
 
 # `Raise` adds an expected error to the signature
 
-<DrawnAnnotation text="Raise<MissingUser>" />
-<DrawnAnnotation text="raise(MissingUser(id))" />
+<DrawnAnnotation text="Transaction" label="Type of the Exposed Typed SQL DSL" :connect="true" :geometry="{ label: { x: 0.5265, y: 0.1903 }, connector: { type: 'quadratic', start: { x: 0.3039, y: 0.2237 }, control: { x: 0.3295, y: 0.2200 }, end: { x: 0.3529, y: 0.1975 } } }"/>
 
 ```kotlin arrow
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-
-data class MissingUser(val id: UserId)
-
-context(users: Users, _: Raise<MissingUser>)
-suspend fun findUser(id: UserId): User =
-  users.find(id) ?: raise(MissingUser(id))
+context(_: Transaction)
+suspend fun insertUser(create: CreateUser): User =
+  UserTable.insertReturning { insert ->
+    insert[username] = create.username
+    insert[email] = create.email
+  }.toUser()
 ```
-
-<!--
-
-MissingUser is an ordinary domain value, not an exception subclass. raise exits
-this logical computation; it does not produce a User or resume after the call.
-Unexpected exceptions and coroutine cancellation remain separate concerns.
-Raise is a capability required by the function, just as Users is.
-Source: https://arrow-kt.io/learn/typed-errors/working-with-typed-errors/
--->
 
 ---
 
-# `either` supplies `Raise`
+# `Raise` adds an expected error to the signature
 
-<DrawnAnnotation text="either" />
+<DrawnAnnotation text="catch" on="0" />
+<DrawnAnnotation text="PLSQLException" on="0" label="`catch` specific errors and lift them to type signature"  :connect="true" :geometry="{ label: { x: 0.6281, y: 0.5964 }, connector: { type: 'quadratic', start: { x: 0.3260, y: 0.6474 }, control: { x: 0.3667, y: 0.6510 }, end: { x: 0.3826, y: 0.6154 } } }"/>
+<DrawnAnnotation text="Raise<UserAlreadyExists>" on="1" />
+<DrawnAnnotation text="raise(UserAlreadyExists(" on="1" label="Raise error into `context(Raise<UserAlreadyExists>)`"  :connect="true" :geometry="{ label: { x: 0.6246, y: 0.7644 } }"/>
 
-```kotlin arrow
-import arrow.core.Either
+```kotlin{1,3-5,10-13} arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
-import arrow.core.raise.either
 
-data class MissingUser(val id: UserId)
+value class UserAlreadyExists(val username: String)
 
-context(users: Users, _: Raise<MissingUser>)
-suspend fun findUser(id: UserId): User =
-  users.find(id) ?: raise(MissingUser(id))
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException -> 
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
+```
+
+---
+
+# Handling the error supplies `Raise`
+
+<TypeHint :line="3" context="Raise<UserAlreadyExists>">
+<TypeHint :line="9" context="Raise<UserAlreadyExists>">
+
+```kotlin arrow
+import arrow.core.raise.Raise
+import arrow.core.raise.context.raise
+
+value class UserAlreadyExists(val username: String)
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException ->
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
 
 // Example
-context(_: Users)
-suspend fun result(id: UserId): Either<MissingUser, User> =
-  either { findUser(id) }
+context(_: Transaction)
+suspend fun insertUserOrNull(create: CreateUser): User? =
+  recover({
+    insertUser(create)
+  }) { _ -> null }
+
+context(_: Transaction)
+suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User> =
+  either {
+    insertUser(create)
+  }
 ```
 
-<!--
-
-either supplies Raise and reifies its outcome at the boundary. The service did
-not have to construct or unwrap Either at every intermediate step. A handler can
-instead recover into its own response. Catching all exceptions would also risk
-swallowing cancellation; that is not what we are doing.
--->
+</TypeHint>
+</TypeHint>
 
 ---
 
-# `validate` turns checks into a field error
+# Ktor Routes using Spine
 
-> Application helper · built on Arrow's `accumulate` and `withError`
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" receiver="context(Raise<AlreadyExists>, Raise<InvalidUser>) TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
+<TypeHint :line="6" receiver="Transaction">
+<DrawnAnnotation text="Raise<UserAlreadyExists>"/>
+<DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
+<DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
+<DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
 
-<DrawnAnnotation text="context(Accumulate<String>)" />
-<DrawnAnnotation text="InvalidField(it, name)" />
 
-```kotlin arrow
-import arrow.core.NonEmptyList
-import arrow.core.raise.Accumulate
-import arrow.core.raise.context.Raise
-import arrow.core.raise.context.accumulate
-import arrow.core.raise.withError
+```kotlin ktor
+import presentation.support.*
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.CreateUser
 
-data class InvalidField(val errors: NonEmptyList<String>, val name: String)
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
 
-context(raise: Raise<InvalidField>)
-inline fun <A> validate(
-  name: String,
-  block: context(Accumulate<String>) () -> A,
-): A = raise.withError({ InvalidField(it, name) }) {
-  accumulate(block)
+fun insertUser(create: CreateUser): Result = TODO()
+
+//Example
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User = TODO()
+  
+fun Application.users(database: Database) = routing {
+  routeWithRaise(Api.Users.create) {
+    val user = transaction(database) {
+      insertUser(body)
+    }
+    respond(user)
+  }
 }
 ```
 
-<!--
-
-This is the validate helper from the ktor-arrow-sample application, whose checkout
-is named ktor-arrow-example. Arrow supplies accumulate and withError; the
-application gives that composition a name. The block can collect several String
-errors. withError groups those messages into one InvalidField with its field name.
-The outer function needs Raise<InvalidField>, and its successful result stays A.
-Source: /Users/simonvergauwen/Developer/ktor-arrow-example/src/main/kotlin/io/github/nomisrev/Validation.kt
--->
+</TypeHint>
+</TypeHint>
+</TypeHint>
 
 ---
 
-# A value class validates its construction
+# Validation
 
-<DrawnAnnotation text="private constructor" />
-<DrawnAnnotation text="validate(&quot;username&quot;)" />
+<DrawnAnnotation text="(val value: String)" label="Can create invalid values" color="red" :connect="true" :geometry="{ label: { x: 0.3807, y: 0.3328 } }"/>
 
 ```kotlin arrow
-import arrow.core.raise.context.Raise
+@JvmInline
+value class Username(val value: String)
+```
 
+---
+magic-move
+---
+
+# Validation
+
+<DrawnAnnotation text="Raise<NonEmptyList<String>>" on="0" label="Accumulate `String` error messages into `NonEmptyList`, at least one error or the success value"  :connect="true" :geometry="{ label: { x: 0.5172, y: 0.5807, width: 0.5206 } }"/>
+<DrawnAnnotation text="operator fun invoke" on="1" label="Custom `invoke` operator allows for `Username(...)` syntax"  :connect="true" :geometry="{ label: { x: 0.4276, y: 0.5660 } }"/>
+
+```kotlin arrow
 @JvmInline
 value class Username private constructor(val value: String) {
   companion object {
-    context(_: Raise<InvalidField>)
-    operator fun invoke(value: String): Username = validate("username") {
-      val normalized = value.trim()
-      Username(normalized.notBlank().minSize(1).maxSize(25))
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Username = TODO()
+  }
+}
+```
+
+---
+magic-move
+---
+
+
+# Validation
+
+<DrawnAnnotation text="ensure" />
+<DrawnAnnotation text="ensure" :occurrence="2" label="Defined on `context(Raise<String>)` so it short-circuits"  :connect="true" :geometry="{ label: { x: 0.3688, y: 0.6412 } }"/>
+
+```kotlin arrow
+@JvmInline
+value class Username private constructor(val value: String) {
+  companion object {
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Username {
+      ensure(value.length >= 4) { ["Username is too short"] }
+      ensure(value.length <= 255) { ["Username is too long"] }
+      return Username(value)
     }
   }
 }
 ```
 
-<!--
-
-The private constructor and public factory make validation the entry point.
-notBlank, minSize, and maxSize are small application extensions with an
-Accumulate<String> context, each built from Arrow's ensureOrAccumulate. They
-return the String to compose checks. Blank input can report both blank and too
-short; accumulate prevents returning the invalid value. Valid input is trimmed
-and wrapped. These names and bounds follow the existing application example.
-Source: /Users/simonvergauwen/Developer/ktor-arrow-example/src/main/kotlin/io/github/nomisrev/users/Username.kt
--->
-
+---
+magic-move
 ---
 
-# Independent fields accumulate before construction
+# Validation
 
-<DrawnAnnotation text="validate(::IncorrectInput)" />
-<DrawnAnnotation text="by accumulating" />
+<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
+<DrawnAnnotation text="ensureOrAccumulate" />
+<DrawnAnnotation text="ensureOrAccumulate" :occurrence="2" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5279, y: 0.7138 }, connector: { type: 'quadratic', start: { x: 0.1366, y: 0.5590 }, control: { x: 0.1389, y: 0.6177 }, end: { x: 0.1366, y: 0.6880 } } }"/>
 
 ```kotlin arrow
-import arrow.core.raise.context.Raise
-
-data class RegisterUserRequest(val username: String, val email: String) {
-  context(_: Raise<IncorrectInput>)
-  fun toRegisterUser(): RegisterUser = validate(::IncorrectInput) {
-    val username by accumulating { Username(username) }
-    val email by accumulating { Email(email) }
-    RegisterUser(username, email)
+@JvmInline
+value class Username private constructor(val value: String) {
+  companion object {
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Username =
+      accumulate {
+        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
+        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
+        Username(value)
+      }
   }
 }
 ```
 
-<!--
-
-The generic validate overload takes an error constructor. Here it combines all
-InvalidField values into IncorrectInput. Each accumulating block captures one
-field's result without stopping the remaining checks. Reading the delegated
-values allows constructing RegisterUser only when the needed values succeeded.
-The original request also validates a password; two fields keep the same
-composition legible. The application test asserts multiple errors per field and
-errors across all invalid fields. This is actual accumulation, distinct from the
-union of possible error types on the next slide.
-Sources: /Users/simonvergauwen/Developer/ktor-arrow-example/src/main/kotlin/io/github/nomisrev/users/UserApi.kt
-/Users/simonvergauwen/Developer/ktor-arrow-example/src/test/kotlin/io/github/nomisrev/ValidationSpec.kt
--->
+</TypeHint>
 
 ---
-snippets: false
+
+# Validation
+
+<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
+<DrawnAnnotation text="ensureOrAccumulate" />
+<DrawnAnnotation text="ensureOrAccumulate" :occurrence="2" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5279, y: 0.7138 }, connector: { type: 'quadratic', start: { x: 0.1366, y: 0.5590 }, control: { x: 0.1389, y: 0.6177 }, end: { x: 0.1366, y: 0.6880 } } }"/>
+
+```kotlin arrow
+@JvmInline
+value class Username private constructor(val value: String) {
+  companion object {
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Username =
+      accumulate {
+        ensureOrAccumulate(value.length >= 4) { "Username is too short" }
+        ensureOrAccumulate(value.length <= 255) { "Username is too long" }
+        ensureOrAccumulate(value.matches(Regex("[a-zA-Z0-9]+"))) { "Username is invalid" }
+        Username(value)
+      }
+  }
+}
+```
+
+</TypeHint>
+
+---
+
+# Validation
+
+<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
+
+```kotlin arrow
+@JvmInline
+value class Email private constructor(val value: String) {
+  companion object {
+    context(_: Raise<NonEmptyList<String>>)
+    operator fun invoke(value: String): Email =
+      accumulate {
+        ensureOrAccumulate(value.contains("@")) { "Email is invalid" }
+        Email(value)
+      }
+  }
+}
+
+```
+
+</TypeHint>
+
+---
+
+# Validation
+
+```kotlin arrow
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<NonEmptyList<String>>)
+fun CreateUserRequest.toCreateUser(): CreateUser = TODO()
+```
+
+---
+magic-move
+---
+
+# Validation
+
+<DrawnAnnotation text="NonEmptyList<NonEmptyList" label="Accumulating `NonEmptyList<String>` into a `NonEmptyList`" :connect="true" :geometry="{ label: { x: 0.6554, y: 0.5450 }, connector: { type: 'quadratic', start: { x: 0.5740, y: 0.4214 }, control: { x: 0.5763, y: 0.4687 }, end: { x: 0.5740, y: 0.5263 } } }"/>
+
+```kotlin{3-10} arrow
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<NonEmptyList<String>>)
+fun CreateUserRequest.toCreateUser(): CreateUser =
+  withError({ errors: NonEmptyList<NonEmptyList<String>> ->
+    it.reduce { acc, errors -> acc + errors }
+  }) {
+    
+  }
+```
+
+---
+magic-move
+---
+
+# Validation
+
+<TypeHint :line="8" context="Accumulate<String>, Raise<String>">
+
+```kotlin{8-12} arrow
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<NonEmptyList<String>>)
+fun CreateUserRequest.toCreateUser(): CreateUser =
+  withError({ errors: NonEmptyList<NonEmptyList<String>> ->
+    it.reduce { acc, errors -> acc + errors }
+  }) {
+    accumulate {
+      val username by accumulating { Username(username) }
+      val email by accumulating { Email(email) }
+      User(username, email)
+    }
+  }
+```
+
+</TypeHint>
+
+---
+magic-move
+---
+
+# Validation
+
+<TypeHint :line="12" context="Accumulate<String>, Raise<String>">
+
+```kotlin{1,2,6,9} arrow
+@JvmInline
+value class InvalidUser(val errors: NonEmptyList<String>)
+
+data class CreateUser(val username: Username, val email: Email)
+
+context(_: Raise<InvalidUser>)
+fun CreateUserRequest.toCreateUser(): CreateUser =
+  withError({ errors: NonEmptyList<NonEmptyList<String>> ->
+    InvalidUser(it.reduce { acc, errors -> acc + errors })
+  }) {
+    accumulate {
+      val username by accumulating { Username(username) }
+      val email by accumulating { Email(email) }
+      User(username, email)
+    }
+  }
+```
+
+</TypeHint>
+
+---
+
+# Call directly in the route 
+
+<DrawnAnnotation text="toCreateUser" />
+
+```kotlin
+fun Application.users() = routing {
+  route(Api.Users.create) {
+    val create = body.toCreateUser()
+    when(val result = insertUser(create)) {
+      is Success -> respond(result.user)
+      AlreadyExists -> fail(UserAlreadyExists)
+    }
+  }
+}
+```
+
 ---
 
 # `|.` skips the call on an error
 
 > Design proposal · KEEP-0462
 
-<DrawnAnnotation text="User | MissingUser" />
-<DrawnAnnotation text="|.name" />
+<DrawnAnnotation text="error" label="Explicit error types" />
+<DrawnAnnotation text="User | MissingUser" label="Error union, single success type with multiple error types" />
+<DrawnAnnotation text="|.name" label="Language level short-circuit syntax like `?.` for nullable types" />
+<DrawnAnnotation text="Unit | MissingUser | NotEligible" label="Errors accumulate automatically in the type" />
 
 ```kotlin no-compile
 error class MissingUser(val id: UserId)
 
 suspend fun findUser(id: UserId): User | MissingUser
 
-suspend fun greeting(id: UserId): String | MissingUser =
-  findUser(id)|.name
+suspend fun User.mark(): Unit | NotEligible
+
+suspend fun process(id: UserId): Unit | MissingUser | NotEligible =
+  findUser(id)|.mark()
 ```
-
-<!--
-
-This is proposed syntax, not an available compiler feature in this project.
-The union-like return says success or a typed error. The proposed |. operator
-accesses name on success and short-circuits with the error otherwise. Chaining
-can widen the possible error alternatives; it does not accumulate multiple
-failures from one run. Contrast only these semantics, not languages.
-Source: https://github.com/Kotlin/KEEP/blob/main/proposals/KEEP-0462-rich-errors.md
--->
-
----
-
-# `suspend` and `context` compose
-
-<DrawnAnnotation text="context(users: Users, logger: Logger, _: Raise<MissingUser>)" />
-<DrawnAnnotation text="suspend fun" />
-
-```kotlin arrow
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-
-data class MissingUser(val id: UserId)
-
-context(users: Users, logger: Logger, _: Raise<MissingUser>)
-suspend fun greeting(id: UserId): String {
-  val user = users.find(id) ?: raise(MissingUser(id))
-  logger.info("Welcoming ${user.id}")
-  return "Hello, ${user.name}"
-}
-```
-
-<!--
-
-Read the complete contract. Users and Logger are the required services;
-MissingUser is the expected failure; suspend permits asynchronous work; String
-is success. This reaches the dependency, typed-error, and concurrency powers
-that motivated the talk, using independent language and library mechanisms.
-This is the tagless-final-style idea of a program against capabilities. It is
-not a claim of higher-kinded effect polymorphism or purity enforcement.
--->
-
----
-
-# The same function runs with in-memory users
-
-<DrawnAnnotation text="object : Users" />
-<DrawnAnnotation text="either { greeting(UserId(42)) }" />
-
-```kotlin arrow
-import arrow.core.Either
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-import arrow.core.raise.either
-
-data class MissingUser(val id: UserId)
-
-context(users: Users, logger: Logger, _: Raise<MissingUser>)
-suspend fun greeting(id: UserId): String {
-  val user = users.find(id) ?: raise(MissingUser(id))
-  logger.info("Welcoming ${user.id}")
-  return "Hello, ${user.name}"
-}
-
-// Example
-suspend fun example(logger: Logger): Either<MissingUser, String> {
-  val users = object : Users {
-    override suspend fun find(id: UserId): User? =
-      if (id == UserId(42)) User(id, "Ada") else null
-  }
-  return with(users) {
-    with(logger) { either { greeting(UserId(42)) } }
-  }
-}
-```
-
-<!--
-
-The same greeting runs against an in-memory Users. The production boundary can
-supply an SDK-backed implementation, the test a deterministic one. The Logger
-can record messages. The Either boundary exposes an assertion-friendly value.
-No framework container is required for this substitution.
--->
-
----
-
-# The route turns a typed error into HTTP
-
-<DrawnAnnotation text="with(users)" />
-<DrawnAnnotation text="either { greeting(UserId(id)) }" />
-
-```kotlin arrow
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-import arrow.core.raise.either
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.util.getValue
-
-data class MissingUser(val id: UserId)
-
-context(users: Users, logger: Logger, _: Raise<MissingUser>)
-suspend fun greeting(id: UserId): String {
-  val user = users.find(id) ?: raise(MissingUser(id))
-  logger.info("Welcoming ${user.id}")
-  return "Hello, ${user.name}"
-}
-
-// Example
-fun Route.greetings(users: Users, logger: Logger) {
-  get("/users/{id}/greeting") {
-    val id: Long by call.pathParameters
-    val result = with(users) {
-      with(logger) { either { greeting(UserId(id)) } }
-    }
-    result.fold(
-      { call.respondText("Unknown user", status = HttpStatusCode.NotFound) },
-      { call.respondText(it) },
-    )
-  }
-}
-```
-
-<!--
-
-Bring the thread back to our original service: route, delegated parameter,
-suspending service, required capabilities, domain failure, HTTP interpretation.
-Users is supplied by application wiring, where the real SDK/database resources
-live. MissingUser becomes 404 here; the business function knows no HTTP status.
-
--->

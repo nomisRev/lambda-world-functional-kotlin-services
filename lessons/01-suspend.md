@@ -17,17 +17,12 @@ Start with the smallest signature.
 -->
 
 ---
+clicks: 4
+---
 
 # SuspendApp
 
-TODO
-
-some graphical animation / intro showing _why_
-we need `IO` to model a Process <~> App.
-
-(SIGTERM/SIGINT) <~> cancel and join inner work,
-backpressure process to allow gracefull finishing work,
-and closing resources.'
+<SuspendAppLifecycle />
 
 ---
 
@@ -318,7 +313,7 @@ fun main() = SuspendApp {
 
 # Process events in parallel
 
-<DrawnAnnotation text="dependencies()" label="`suspend fun ResourceScope.dependencies(): Dependencies`"  :connect="true" :geometry="{ label: { x: 0.6553, y: 0.3918 }, connector: { type: 'quadratic', start: { x: 0.3712, y: 0.3112 }, control: { x: 0.4285, y: 0.3133 }, end: { x: 0.4349, y: 0.3710 } } }"/>
+<DrawnAnnotation text="dependencies()" label="`suspend ResourceScope.() -> Dependencies`"  :connect="true" :geometry="{ label: { x: 0.6553, y: 0.3918 }, connector: { type: 'quadratic', start: { x: 0.3712, y: 0.3112 }, control: { x: 0.4285, y: 0.3133 }, end: { x: 0.4349, y: 0.3710 } } }"/>
 <TypeHint :line="1" receiver="SuspendAppScope">
 <TypeHint :line="2" context="ResourceScope">
 <TypeHint :line="4" receiver="Application">
@@ -345,6 +340,7 @@ fun main() = SuspendApp {
 
 # Process events in parallel
 
+<DrawnAnnotation text="coroutineScope" label="`suspend ResourceScope.() -> CoroutineScope`"  :connect="true" :geometry="{ label: { x: 0.6497, y: 0.3123 }, connector: { type: 'quadratic', start: { x: 0.3929, y: 0.3627 }, control: { x: 0.4187, y: 0.3590 }, end: { x: 0.4243, y: 0.3291 } } }"/>
 <TypeHint :line="1" receiver="SuspendAppScope">
 <TypeHint :line="2" context="ResourceScope">
 <TypeHint :line="5" receiver="Application">
@@ -393,7 +389,7 @@ suspend fun processor() {
 
 # Process events in parallel
 
-<DrawnAnnotation text="consumeAsFlow" label="Flow is a concurrent stream" on="0"  :geometry="{ label: { x: 0.4752, y: 0.2184 } }"/>
+<DrawnAnnotation text="consumeAsFlow" label="Flow is a concurrent stream" on="0"  :geometry="{ label: { x: 0.4948, y: 0.3006 } }"/>
 <DrawnAnnotation text="map" label="Supports `suspend`" on="1"  :geometry="{ label: { x: 0.3358, y: 0.3438 } }"/>
 <DrawnAnnotation text="collect" label="Drain the `Flow`, `suspend` awaits until entire `Flow` is drained" on="2"  :geometry="{ label: { x: 0.4445, y: 0.4002 } }"/>
 
@@ -491,7 +487,30 @@ suspend fun processor() {
 
 <DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
 
-```kotlin
+```kotlin arrow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import presentation.support.*
+
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
+
+// Example
+suspend fun processor(): Flow<Unit> =
+  sdk.events().consumeAsFlow()
+    .parMap(concurrency = 64) { handle(it) }
+```
+
+---
+
+# Process events in parallel
+
+<DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
+
+```kotlin arrow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -505,14 +524,15 @@ object sdk {
 // Example
 suspend fun processor(): Flow<Unit> =
   sdk.events().consumeAsFlow()
-    .map { handle(it) }
+    .parMap(concurrency = 64) { handle(it) }
+    .retry(3) { cause -> cause is RetryiableException }
+    .buffer(100)
 ```
 
 ---
 
 # Process events in parallel
 
-<DrawnAnnotation text="launchIn" label="Drain in parallel within the `SuspendAppScope`" />
 <TypeHint :line="1" receiver="SuspendAppScope">
 <TypeHint :line="2" context="ResourceScope">
 <TypeHint :line="3" receiver="Application">
@@ -533,7 +553,7 @@ fun processor(): Flow<Unit> = emptyFlow()
 // Example
 fun main() = SuspendApp {
   resourceScope {
-    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
+    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
       
     }
     processor().launchIn(this)
@@ -547,14 +567,16 @@ fun main() = SuspendApp {
 </TypeHint>
 
 ---
+magic-move
+---
 
 # Configuring your server
 
 <DrawnAnnotation text="@Serializable" label="Compiler plugin to generate serialization code" on="0" :geometry="{ label: { x: 0.4348, y: 0.1982 } }"/>
-<DrawnAnnotation text="getAs<Config>" label="Read, and deserialize the configuration" on="1"  :geometry="{ label: { x: 0.8400, y: 0.4607, width: 0.3115 } }"/>
+<DrawnAnnotation text="getAs<Config>" label="Read, and deserialize the configuration" on="1"  :geometry="{ label: { x: 0.8299, y: 0.2919, width: 0.3115 }, connector: { type: 'quadratic', start: { x: 0.7997, y: 0.4112 }, control: { x: 0.8434, y: 0.3922 }, end: { x: 0.8491, y: 0.3415 } } }" :connect="true"/>
 <TypeHint :line="4" receiver="SuspendAppScope">
-<TypeHint :line="5" context="ResourceScope">
-<TypeHint :line="6" receiver="Application">
+<TypeHint :line="6" context="ResourceScope">
+<TypeHint :line="7" receiver="Application">
 
 ```kotlin arrow
 import arrow.continuations.SuspendApp
@@ -623,6 +645,9 @@ fun Application.app() {
 
 # Configuring your Ktor server
 
+<TypeHint :line="2" receiver="ContentNegotiationConfig">
+<TypeHint :line="3" receiver="JsonBuilder">
+
 ```kotlin ktor
 import io.ktor.http.ContentType
 import io.ktor.http.content.OutgoingContent
@@ -659,10 +684,13 @@ fun Application.app() {
       isLenient = true
       ignoreUnknownKeys = true
     })
-    register(ContentType.Application.Xml, CustomXmlConverter())
+    register(ContentType("application", "custom"), CustomConverter())
   }
 }
 ```
+
+</TypeHint>
+</TypeHint>
 
 ---
 
@@ -676,6 +704,9 @@ import presentation.support.*
 
 data class CreateUser(val name: String)
 object UserAlreadyExists
+object InvalidUser {
+  val errors: List<String> = ["username too short", "email doesn't contain @"]
+}
 
 //Example
 object Api : RootResource("api") {                   // api
@@ -687,6 +718,7 @@ object Api : RootResource("api") {                   // api
       .request<CreateUser>()
       .response<User>() 
       .failure<UserAlreadyExists>(HttpStatusCode.Conflict)
+      .failure<InvalidUser>(HttpStatusCode.UnprocessableEntity)
   }
 }
 ```
@@ -700,11 +732,12 @@ import io.ktor.client.HttpClient
 import opensavvy.spine.api.div
 import opensavvy.spine.client.handle
 import opensavvy.spine.client.request
-import presentation.snippets.s01suspend.slide28.Api
-import presentation.snippets.s01suspend.slide28.Api.Users
-import presentation.snippets.s01suspend.slide28.Api.Users.create
-import presentation.snippets.s01suspend.slide28.CreateUser
-import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.Api.Users
+import presentation.snippets.s01suspend.slide32.Api.Users.create
+import presentation.snippets.s01suspend.slide32.CreateUser
+import presentation.snippets.s01suspend.slide32.InvalidUser
+import presentation.snippets.s01suspend.slide32.UserAlreadyExists
 import presentation.support.*
 
 // Example
@@ -715,6 +748,7 @@ suspend fun main() {
     client.request(Api / Users / create, CreateUser("johndoe"))
       .handle(
         { _: UserAlreadyExists -> println("User already exists") },
+        { errors: InvalidUser -> println(errors.joinToString { it.message }) },
         { _: User -> println("User created") }
       )
   }
@@ -726,7 +760,53 @@ suspend fun main() {
 
 # Ktor Routes using Spine
 
+<TypeHint :line="1" receiver="Routing">
+<TypeHint :line="2" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
+<DrawnAnnotation text="body" :connect="true" on="0"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.4481, y: 0.3153 }, control: { x: 0.5529, y: 0.3218 }, end: { x: 0.6209, y: 0.2636 } } }"/>
+<DrawnAnnotation text="respond(result.user)" label="" :connect="true" on="1"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.5036, y: 0.3647 }, control: { x: 0.6418, y: 0.3689 }, end: { x: 0.7178, y: 0.2754 } } }"/>
+<DrawnAnnotation text="fail(UserAlreadyExists)" on="2"/>
+<DrawnAnnotation text="fail(result.toInvalidUser())" label="" :connect="true" on="2"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.6144, y: 0.4496 }, control: { x: 0.7869, y: 0.4247 }, end: { x: 0.7962, y: 0.2842 } } }"/>
+
 ```kotlin ktor
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.fail
+import presentation.snippets.s01suspend.slide28.Api
+import opensavvy.spine.server.route
+import opensavvy.spine.server.respond
+import presentation.snippets.s01suspend.slide28.CreateUser
+import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.support.*
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(createUser: CreateUser): Result = TODO()
+
+//Example
+fun Application.users() = routing {
+  route(Api.Users.create) {
+    when(val result = insertUser(body)) {
+      is Success -> respond(result.user)
+      AlreadyExists -> fail(UserAlreadyExists)
+      InvalidBody -> fail(result.toInvalidUser())
+    }
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+
+---
+
+# Typed authentication
+
+<TypeHint :line="1" receiver="Routing">
+<TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import opensavvy.spine.server.fail
@@ -746,28 +826,27 @@ fun getAllUsers(): List<User> = emptyList()
 
 //Example
 fun Application.users() = routing {
-  route(Api.Users.create) {
-    when(val user = insertUser(body)) {
-      AlreadyExists -> fail(UserAlreadyExists)
-      is Success -> respond(user.user)
-    }
-  }
-  
   route(Api.Users.list) {
     val users = getAllUsers()
     respond(users)
   }
 }
-
 ```
+
+</TypeHint>
+</TypeHint>
 
 ---
 
 # Typed authentication
 
-```kotlin{1} ktor 
+<DrawnAnnotation text="JwtUser" :line="1" />
+<DrawnAnnotation text="JwtUser" :line="2" />
+<DrawnAnnotation text="JwtUser" :line="6" label="The `principal` is typed"  :connect="true" :geometry="{ label: { x: 0.2966, y: 0.5147 } }"/>
+
+```kotlin ktor 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") {
+    jwt<JwtUser>("ktor-arrow-server") {
         verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
         validate {
             val userId = it.getClaim("user_id", Long::class)
@@ -780,7 +859,11 @@ val jwt: AuthenticationScheme<JwtUser, Unit> =
 
 # Typed authentication
 
-```kotlin ktor 
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
+<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin{1,5,6,10,11|7} ktor 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtContext>("ktor-arrow-server") { }
 
@@ -795,11 +878,21 @@ fun Application.users() = routing {
 }
 ```
 
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+---
+magic-move
 ---
 
 # Typed authentication
 
-```kotlin ktor 
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
+<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
+
+```kotlin{7,14-16} ktor 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtContext>("ktor-arrow-server") { }
 
@@ -813,10 +906,15 @@ fun Application.users() = routing {
   }
 }
 
-context(handler: RoutingContext, ctx: PrincipalContext<P>)
+context(ctx: PrincipalContext<P>)
 val <P : Any> ApplicationCall.principal: P
-get() = TODO()
+  get() = ctx.principal(this)
 ```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
 
 ---
 
@@ -875,131 +973,3 @@ unbounded inputs need bounded concurrency and backpressure.
 -->
 
 ---
-
-# The application owns its event consumer
-
-<DrawnAnnotation text="onEach { handle(it) }" />
-<DrawnAnnotation text="launchIn(this)" />
-
-```kotlin
-import io.ktor.server.application.Application
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-
-fun Application.consume(events: Flow<Event>) {
-  events
-    .onEach { handle(it) }
-    .launchIn(this)
-}
-```
-
-<!--
-
-onEach can call suspending handlers, and preserves sequential collection.
-Nothing is collected until launchIn starts a collector in Application's
-CoroutineScope. Application lifetime owns this background job, not one request.
-Ktor cancels its application scope on shutdown. A real consumer needs a deliberate
-failure/retry policy; launchIn does not invent one. This is the ownership shape.
-Sources: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/launch-in.html
-https://api.ktor.io/ktor-server-core/io.ktor.server.application/-application/index.html
--->
-
----
-
-# `SuspendApp` makes shutdown cancellation
-
-<DrawnAnnotation text="SuspendApp" />
-<DrawnAnnotation text="finally" />
-
-```kotlin arrow
-import arrow.continuations.SuspendApp
-import kotlinx.coroutines.awaitCancellation
-
-fun main() = SuspendApp {
-  try {
-    awaitCancellation()
-  } finally {
-    println("Application stopped")
-  }
-}
-```
-
-<!--
-
-At the outer edge we need an owner too. SuspendApp bridges process shutdown,
-including SIGTERM, into coroutine cancellation and waits for cleanup subject to
-its shutdown timeout. The finally here does not suspend; resource finalizers
-will handle cancellation-safe suspending release next.
-Source: https://arrow-kt.io/learn/coroutines/suspendapp/
--->
-
----
-
-# A resource carries its release action
-
-> First context parameter: permission to register cleanup
-
-<DrawnAnnotation text="context(_: ResourceScope)" />
-<DrawnAnnotation text="source.close()" />
-
-```kotlin arrow
-import arrow.fx.coroutines.ResourceScope
-import arrow.fx.coroutines.resource.context.install
-
-context(_: ResourceScope)
-suspend fun eventSource(connector: EventConnector): EventSource =
-  install({ connector.connect() }) { source, _ ->
-    source.close()
-  }
-```
-
-<!--
-
-EventConnector and EventSource are our application interfaces; close can suspend.
-Arrow's install pairs successful acquisition with release. Cancellation between
-those operations must not leak a resource; the scope owns that protocol.
-First mention of context: this function asks for a ResourceScope in addition to
-its ordinary connector argument. We will unpack resolution in the next chapter.
-Source: https://arrow-kt.io/learn/coroutines/resource-safety/
--->
-
----
-
-# Resource functions compose in one scope
-
-<DrawnAnnotation text="resourceScope" />
-<DrawnAnnotation text="eventSource(connector)" />
-<TypeHint text="resourceScope {" context="ResourceScope">
-
-```kotlin arrow
-import arrow.continuations.SuspendApp
-import arrow.fx.coroutines.ResourceScope
-import arrow.fx.coroutines.resource.context.install
-import arrow.fx.coroutines.resource.context.resourceScope
-import kotlinx.coroutines.flow.collect
-
-context(_: ResourceScope)
-suspend fun eventSource(connector: EventConnector): EventSource =
-  install({ connector.connect() }) { source, _ -> source.close() }
-
-// Example
-fun runConsumer(connector: EventConnector) = SuspendApp {
-  resourceScope {
-    val source = eventSource(connector)
-    val audit = eventSource(connector)
-    source.events.collect { event -> handle(event) }
-  }
-}
-```
-
-</TypeHint>
-
-<!--
-
-Acquisition stays sequential and compositional. If the second acquisition fails,
-the first is released. On exit, resources release in reverse acquisition order,
-also on cancellation. audit stands for another independently managed connection;
-it need not appear in the collector for its lifetime to be correctly managed.
-Release runs under Arrow's cancellation-safe finalization protocol.
--->

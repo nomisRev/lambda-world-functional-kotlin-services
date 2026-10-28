@@ -64,9 +64,6 @@ Kotlin function can still perform effects. We will build the useful capabilities
 src: ./lessons/01-suspend.md
 ---
 ---
-src: ./lessons/02-context.md
----
----
 src: ./lessons/03-types.md
 ---
 ---

@@ -3,7 +3,9 @@
 
 package presentation.snippets.s01suspend.slide8
 
+import presentation.support.*
 import arrow.continuations.SuspendApp
+
 suspend fun program(): Unit = TODO()
 
 fun main() = SuspendApp {

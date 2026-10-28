@@ -13,6 +13,8 @@ object sdk {
   fun events(): Channel<Event> = Channel()
 }
 
-suspend fun processor(): Flow<Unit> =
+suspend fun processor() {
   sdk.events().consumeAsFlow()
-    .map { handle(it) }
+    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
+    .collect()
+}

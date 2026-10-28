@@ -4,17 +4,15 @@
 package presentation.snippets.s01suspend.slide20
 
 import presentation.support.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
 
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-suspend fun processor() {
-  sdk.events().consumeAsFlow()
-    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
-    .collect()
+fun main() = SuspendApp {
+  resourceScope {
+    val dep = dependencies()
+    val scope = coroutineScope()
+    server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
+      
+    }
+    scope.launch { dep.processor() }
+    awaitCancellation()
+  }
 }

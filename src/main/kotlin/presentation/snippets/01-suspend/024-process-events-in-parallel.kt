@@ -4,24 +4,17 @@
 package presentation.snippets.s01suspend.slide24
 
 import presentation.support.*
-import arrow.continuations.SuspendApp
-import arrow.continuations.ktor.server
-import arrow.fx.coroutines.resourceScope
-import io.ktor.server.netty.Netty
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.map
 
-fun processor(): Flow<Unit> = emptyFlow()
+object sdk {
+  fun events(): Channel<Event> = Channel()
+}
 
-fun main() = SuspendApp {
-  resourceScope {
-    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
-      
-    }
-    processor().launchIn(this)
-    awaitCancellation()
-  }
+suspend fun processor() {
+  sdk.events().consumeAsFlow()
+    .parMapUnordered(concurrency = 64) { handle(it) }
+    .collect()
 }
