@@ -6,18 +6,10 @@ package presentation.snippets.s01suspend.slide38
 import presentation.support.*
 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") { }
-
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
-      val user = call.principal
-      val users = getAllUsers()
-      respond(users)
+    jwt<JwtUser>("ktor-arrow-server") {
+        verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
+        validate {
+            val userId = it.getClaim("user_id", Long::class)
+            JwtUser(userId)
+        }
     }
-  }
-}
-
-context(ctx: PrincipalContext<P>)
-val <P : Any> ApplicationCall.principal: P
-  get() = ctx.principal(this)

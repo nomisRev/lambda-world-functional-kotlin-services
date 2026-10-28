@@ -20,9 +20,36 @@ Start with the smallest signature.
 clicks: 4
 ---
 
-# SuspendApp
+# A service owns its work and its lifetime
 
-<SuspendAppLifecycle />
+<div class="jobtree-centre">
+<JobTree
+  :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 4 }"
+  :children="[
+    { label: 'server', kind: 'resource', finalising: 2, done: 3 },
+    { label: 'processor', cancelling: 2, cancelled: 3 },
+  ]"
+  :cancel="1"
+  cancel-label="SIGTERM"
+/>
+</div>
+
+<!--
+The setup for this whole part, before any I/O. One application owns an HTTP
+server and an event processor. Both run forever, and both belong to the
+application: when it goes, they go. The server is drawn as a square box: it is
+a thing we hold and must give back, not a task that runs.
+
+Click 1: `SIGTERM` or `SIGINT` reaches the root, nothing else. Click 2: the
+processor is cancelled, dashed amber, still finishing the event it is on; the
+server is released, blue, a graceful stop rather than a cancellation. Click 3:
+the processor is gone and the server is gone. Click 4: only now does the
+application complete and the process exit.
+
+The rest of Part 1 fills in the signatures that make this tree real:
+`SuspendApp`, `resourceScope`, `server`, `launch`. The same tree comes back
+with real code once the server is a resource in a `resourceScope`.
+-->
 
 ---
 
@@ -102,7 +129,7 @@ fun program(): IO<Unit> =
 # What is `suspend`?
 
 <DrawnAnnotation text="suspend" label="suspend lambda" on="0"  :geometry="{ label: { x: 0.4280, y: 0.2681 } }"/>
-<DrawnAnnotation text="SuspendAppScope" label="lambda with receiver, allows calling `exitApp(code)`" on="1"  :geometry="{ label: { x: 0.6493, y: 0.2711 } }"/>
+<DrawnAnnotation text="SuspendAppScope" label="lambda with receiver, allows calling `exitApp(code)`" at="1"  :geometry="{ label: { x: 0.6493, y: 0.2711 } }"/>
 
 ```kotlin arrow no-compile
 fun SuspendApp(block: suspend SuspendAppScope.() -> Unit): Unit
@@ -129,9 +156,9 @@ fun main() = SuspendApp {
 
 <v-click at="+2">
   <ul>
-     <li>Cancellation on <code>SIGINT</code> & <code>SIGTERM</code>, graceful shutdown</li>
+     <li>Cancellation on <code>SIGINT</code> & <code>SIGTERM</code></li>
+     <li>Await all cancelled <code>Job</code>s to complete</li>
      <li>Structured Concurrency through KotlinX Coroutines</li>
-     <li>???</li>
   </ul>
 </v-click>
 
@@ -277,11 +304,133 @@ suspend fun server(
 ```
 
 ---
+class: job-slide
+clicks: 4
+---
 
-# Long running
+# The server lives as long as the scope
 
-TODO: Animation showing event processors as 'forever' tasks,
-they run with same lifecycle as the server.
+<DrawnAnnotation text="awaitCancellation" color="var(--fundamentals-cancel)" on="2"/>
+<DrawnAnnotation text="server" color="var(--fundamentals-finalise)" on="3"/>
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.awaitCancellation
+import java.lang.System.getenv
+
+val host: String = getenv("HOST")
+val port: Int = getenv("PORT").toInt()
+
+// Example
+fun main() = SuspendApp {
+  resourceScope {
+    server(Netty, host = host, port = port) { }
+    awaitCancellation()
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+
+<JobTree
+  :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 4 }"
+  :children="[
+    {
+      label: 'resourceScope', kind: 'scope', cancelling: 2, cancelled: 4,
+      children: [{ label: 'server(Netty)', kind: 'resource', finalising: 3, done: 4, exit: 'Cancelled' }],
+    },
+  ]"
+  :cancel="1"
+  cancel-label="SIGTERM"
+/>
+
+<!--
+The opening tree again, now with real code. The dotted edge is a suspending
+call: `resourceScope` is not a child Job of `SuspendApp`, it is a function on
+the stack, and the two scopes only meet through `suspend`. The square box is a
+resource `install`ed in the `ResourceScope`: acquired now, released later.
+
+Click 1: `SIGTERM` cancels the `SuspendApp` scope. Click 2: cancellation
+reaches the block, `awaitCancellation` throws. Click 3: `resourceScope` runs
+the release of every installed resource in reverse order with
+`ExitCase.Cancelled`, so the server stops gracefully. Click 4: the server is
+gone, the scope completes, the application can exit.
+-->
+
+---
+class: job-slide
+clicks: 5
+magic-move
+---
+
+# Processors share that lifetime
+
+<DrawnAnnotation text="launch" on="0"/>
+<DrawnAnnotation text="launch" color="var(--fundamentals-cancel)" on="2"/>
+<DrawnAnnotation text="server" color="var(--fundamentals-finalise)" on="3"/>
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import java.lang.System.getenv
+
+val host: String = getenv("HOST")
+val port: Int = getenv("PORT").toInt()
+suspend fun processor(): Unit = awaitCancellation()
+
+// Example
+fun main() = SuspendApp {
+  resourceScope {
+    server(Netty, host = host, port = port) { }
+    launch { processor() }
+    awaitCancellation()
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+
+<JobTree
+  :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 5 }"
+  :children="[
+    {
+      label: 'resourceScope', kind: 'scope', cancelling: 2, cancelled: 4,
+      children: [{ label: 'server(Netty)', kind: 'resource', finalising: 3, done: 4, exit: 'Cancelled' }],
+    },
+    { label: 'launch { processor() }', cancelling: 2, cancelled: 3 },
+  ]"
+  :cancel="1"
+  cancel-label="SIGTERM"
+/>
+
+<!--
+The event processor is the second forever task from the opening tree. `launch`
+comes from `CoroutineScope`, so the processor is a child Job of `SuspendApp`,
+not of `resourceScope`; `install` comes from `ResourceScope`. The two scopes
+are decoupled and only composed through `suspend`, which is why the tree forks
+here.
+
+Click 1: `SIGTERM`. Click 2: cancellation reaches both the block and the
+processor at once. Click 3: the processor is cancelled; `awaitCancellation`
+has thrown, so the server's release runs with `ExitCase.Cancelled`. Click 4:
+the server is gone and `resourceScope` returns. Click 5: the application
+exits. Who owns the processor, and in which order it goes relative to the
+server, is what the next slides make precise with `dependencies()` and
+`coroutineScope()`.
+-->
 
 ---
 

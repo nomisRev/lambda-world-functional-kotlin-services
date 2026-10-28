@@ -5,14 +5,16 @@ package presentation.snippets.s01suspend.slide26
 
 import presentation.support.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 object sdk {
   fun events(): Channel<Event> = Channel()
 }
 
-suspend fun processor(): Flow<Unit> =
+suspend fun processor() {
   sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
+    .parMapUnordered(concurrency = 64) { handle(it) }
+    .collect()
+}

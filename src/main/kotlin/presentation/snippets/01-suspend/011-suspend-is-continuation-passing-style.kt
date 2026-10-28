@@ -6,10 +6,9 @@ package presentation.snippets.s01suspend.slide11
 import presentation.support.*
 
 suspend fun events(): List<Event> =
-  suspendCoroutineCancellable { cont ->
-    val call = sdk.fetchEvents(object : EventHandler() {
+  suspendCoroutine { cont ->
+    sdk.fetchEvents(object : EventHandler() {
       override fun onSuccess(events: List<Event>) = cont.resume(events)
       override fun onFailure(error: Throwable) = cont.resumeWithException(error)
     })
-    cont.invokeOnCancellation { call.cancel() }
   }

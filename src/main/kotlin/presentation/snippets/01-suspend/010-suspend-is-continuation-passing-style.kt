@@ -6,9 +6,6 @@ package presentation.snippets.s01suspend.slide10
 import presentation.support.*
 
 suspend fun events(): List<Event> =
-  suspendCoroutine { cont ->
-    sdk.fetchEvents(object : EventHandler() {
-      override fun onSuccess(events: List<Event>) = cont.resume(events)
-      override fun onFailure(error: Throwable) = cont.resumeWithException(error)
-    })
+  suspendCoroutine { cont: Continuation<List<Event>> ->
+    
   }

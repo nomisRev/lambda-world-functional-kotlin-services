@@ -15,6 +15,6 @@ object sdk {
 
 suspend fun processor() {
   sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
+    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
     .collect()
 }

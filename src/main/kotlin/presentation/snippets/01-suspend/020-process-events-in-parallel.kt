@@ -7,12 +7,10 @@ import presentation.support.*
 
 fun main() = SuspendApp {
   resourceScope {
-    val dep = dependencies()
-    val scope = coroutineScope()
     server(Netty, getenv("HOST"), getenv("PORT").toInt()) {
       
     }
-    scope.launch { dep.processor() }
+    launch { processor() }
     awaitCancellation()
   }
 }

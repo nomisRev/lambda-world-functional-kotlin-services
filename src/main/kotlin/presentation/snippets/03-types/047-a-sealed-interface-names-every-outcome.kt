@@ -12,8 +12,7 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Granted if access.user.active -> "Hello, ${access.user.name}"
-  is Granted -> "Your account is inactive"
-  is Suspended -> access.reason
-  Missing -> "Unknown user"
+  is Access.Granted -> "Hello, ${access.user.name}"
+  is Access.Suspended -> access.reason
+  Access.Missing -> "Unknown user"
 }

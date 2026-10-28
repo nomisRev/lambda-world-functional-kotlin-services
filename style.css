@@ -230,3 +230,18 @@ html.dark .closing-slide::after { background: radial-gradient(circle, rgb(235 85
 /* Long real-world examples: `class: dense-code` on the slide gives the code window a
    narrower type so about 22 lines fit. Trim the snippet first; use this as the last resort. */
 .slidev-layout.dense-code { --code-window-columns: 104; }
+
+/* Part 1: the Job hierarchy, shared with kotlin-fundamentals. Cancellation is
+   not a failure: amber for `SIGTERM`, `cancel()` and cancelled Jobs; red stays
+   for Throwables and mistakes. */
+:root { --fundamentals-cancel: #d97706; --fundamentals-finalise: #0e7fb3; }
+html.dark { --fundamentals-cancel: #fbbf24; --fundamentals-finalise: #5cc8ff; }
+/* A tree on its own, without code beside it. */
+.slidev-layout .jobtree-centre { width: min(100%, 50rem); margin: 5rem auto 0; }
+.slidev-layout .jobtree-centre .jobtree-node { font-size: 1.6rem; }
+.slidev-layout .jobtree-centre .jobtree-fan { height: 4.5rem; }
+/* The tree beside the snippet. The code window keeps the deck's type size (it
+   is sized from the canvas, not the block) and leaves the right side of the
+   slide to the tree. Keep those snippets under 48 columns. */
+.slidev-layout.job-slide .slidev-code-wrapper { width: calc(100% - 33rem); }
+.slidev-layout.job-slide .jobtree { position: absolute; top: 9rem; right: 4rem; width: 31rem; }
