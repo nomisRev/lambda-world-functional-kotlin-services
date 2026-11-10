@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useSlideContext } from '@slidev/client'
-import { codeTextSegments, trimmedLineRange } from '../../slidedev-theme-kotlin/components/code-text-match'
+import { codeTextSegments, trimmedLineRange } from '../utils/code-text-match'
 import suspendCall from '../assets/gutter/suspendCall@14x14.svg'
 import suspendCallDark from '../assets/gutter/suspendCall@14x14_dark.svg'
 
