@@ -1196,9 +1196,9 @@ fun insertUserOrNull(create: CreateUser): User? =
 
 context(_: Raise<UserAlreadyExists>)
 suspend fun insertUserResult(database: Database, create: CreateUser): User =
-  transaction(database) {
+  transaction(database) { // [!this Transaction]
     insertUser(create)
-  } // [!this Transaction]
+  }
 ```
 
 ---
