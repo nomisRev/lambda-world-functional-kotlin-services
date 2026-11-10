@@ -1,9 +1,6 @@
 
 # Typed authentication
 
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
 ```kotlin
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
@@ -23,16 +20,13 @@ fun insertUser(createUser: CreateUser): Result = TODO()
 fun getAllUsers(): List<User> = emptyList()
 
 //Example
-fun Application.users() = routing {
-  route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
     val users = getAllUsers()
     respond(users)
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
@@ -57,17 +51,13 @@ val jwt: AuthenticationScheme<JwtUser, Unit> =
 
 # Typed authentication
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
 ```kotlin{1,5,6,10,11|7} ktor 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtContext>("ktor-arrow-server") { }
 
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  authenticateWith(jwt) { // [!context context(PrincipalContext<JwtUser>, Unit)]
+    route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
       val user = call.principal
       val users = getAllUsers()
       respond(users)
@@ -76,27 +66,19 @@ fun Application.users() = routing {
 }
 ```
 
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
 ---
 magic-move
 ---
 
 # Typed authentication
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
 ```kotlin{7,14-16} ktor 
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtContext>("ktor-arrow-server") { }
 
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  authenticateWith(jwt) { // [!context context(PrincipalContext<JwtUser>, Unit)]
+    route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
       val user = call.principal
       val users = getAllUsers()
       respond(users)
@@ -108,7 +90,3 @@ context(ctx: PrincipalContext<P>)
 val <P : Any> ApplicationCall.principal: P
   get() = ctx.principal(this)
 ```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>

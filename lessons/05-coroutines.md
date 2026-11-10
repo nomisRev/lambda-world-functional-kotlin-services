@@ -3,20 +3,17 @@
 
 <DrawnAnnotation text="Channel<Event>" label="KotlinX Coroutines suspending Queue" on="0"  :geometry="{ label: { x: 0.5182, y: 0.3454 } }"/>
 <DrawnAnnotation text="for (event in events)" label="Suspending iterator" on="1"  :geometry="{ label: { x: 0.3758, y: 0.3484 } }"/>
-<SuspendGutter :lines="[3, 4]">
 
 ```kotlin
 import kotlinx.coroutines.Channel
 
 suspend fun processor() {
   val events: Channel<Event> = sdk.events()
-  for (event in events) {
-    handle(event)
+  for (event in events) { // [!suspend]
+    handle(event) // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
 
 ---
 
@@ -170,27 +167,22 @@ suspend fun program(): Unit {
 
 ---
 
-
-
 # `async` starts independent work
 
 <DrawnAnnotation text="coroutineScope" />
 <DrawnAnnotation text="async" />
-<TypeHint text="coroutineScope {" receiver="CoroutineScope">
 
 ```kotlin
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 suspend fun greetings(users: Users, first: UserId, second: UserId) =
-  coroutineScope {
+  coroutineScope { // [!this text=`coroutineScope {` CoroutineScope]
     val ada = async { users.find(first) }
     val grace = async { users.find(second) }
     listOf(ada.await()?.name, grace.await()?.name)
   }
 ```
-
-</TypeHint>
 
 <!--
 

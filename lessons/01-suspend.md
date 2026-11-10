@@ -98,19 +98,15 @@ magic-move
 
 # What is `suspend`?
 
-<SuspendGutter :lines="[5, 6]">
-
 ```kotlin{4-7} no-compile
 suspend fun events(): List<Event>
 suspend fun Event.process(): Unit
 
 suspend fun program() {
-  val events = events()
-  events.process()
+  val events = events() // [!suspend]
+  events.process() // [!suspend]
 }
 ```
-
-</SuspendGutter>
 
 ```kotlin{4-6} no-compile
 fun events(): IO<List<Event>>
@@ -134,22 +130,16 @@ fun SuspendApp(block: suspend SuspendAppScope.() -> Unit): Unit
 
 <br/>
 
-<SuspendGutter :lines="[2]">
-<TypeHint :line="1" receiver="SuspendAppScope">
-
 ```kotlin arrow
 import arrow.continuations.SuspendApp
 
 suspend fun program(): Unit = TODO()
 
 //Example
-fun main() = SuspendApp {
-  program()
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  program() // [!suspend]
 }
 ```
-
-</TypeHint>
-</SuspendGutter>
 
 <v-click at="+2">
   <ul>
@@ -169,9 +159,6 @@ clicks: 6
 <DrawnAnnotation text="resourceScope" label="Scope for resource management" on="0"  :geometry="{ label: { x: 0.4293, y: 0.3527 } }"/>
 <DrawnAnnotation text="server" label="`install` a server into the `resourceScope`" on="1"  :geometry="{ label: { x: 0.3171, y: 0.3490 } }"/>
 <DrawnAnnotation text="awaitCancellation" label="Await `SIGTERM`/`SIGINT` which cancels the `SuspendApp`\n-> cancels and awaits the running `suspend` lambda and `CoroutineScope`" on="2"  :geometry="{ label: { x: 0.4765, y: 0.6209 } }" :connect="true"/>
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2,3,6]">
 
 ```kotlin arrow
 import io.ktor.server.netty.Netty
@@ -180,19 +167,15 @@ import arrow.continuations.ktor.server
 import arrow.fx.coroutines.resourceScope
 import java.lang.System.getenv
 import kotlinx.coroutines.*
-fun main() = SuspendApp {
-  resourceScope {
-    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  resourceScope { // [!context ResourceScope] [!suspend]
+    server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) { // [!suspend]
       
     }
-    awaitCancellation()
+    awaitCancellation() // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
 
 <JobTree
   :root="{ label: 'SuspendApp', cancelling: 2, cancelled: 6 }"
@@ -224,8 +207,6 @@ suspend fun <A> install(
 
 # Server as a Resource
 
-<SuspendGutter :lines="[7]">
-
 ```kotlin arrow no-compile
 context(_: ResourceScope)
 suspend fun server(
@@ -233,12 +214,10 @@ suspend fun server(
   host: String,
   port: Int,
 ): ServerEngine =
-  install({ engine.createAndStart(host, port) }) { server, _ ->
+  install({ engine.createAndStart(host, port) }) { server, _ -> // [!suspend]
     server.stop()
   }
 ```
-
-</SuspendGutter>
 
 ---
 class: job-slide
@@ -250,9 +229,6 @@ clicks: 5
 <DrawnAnnotation text="launch" label="Starts a parallel task within the `SuspendAppScope`" on="0" :geometry="{ label: { x: 0.3208, y: 0.4760 }, connector: { type: 'quadratic', start: { x: 0.0918, y: 0.3663 }, control: { x: 0.0844, y: 0.4047 }, end: { x: 0.0931, y: 0.4519 } } }" :connect="true"/>
 <DrawnAnnotation text="launch" color="var(--fundamentals-cancel)" on="2"/>
 <DrawnAnnotation text="server" color="var(--fundamentals-finalise)" on="3"/>
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2, 3, 4, 5]">
 
 ```kotlin arrow
 import kotlinx.coroutines.*
@@ -269,18 +245,14 @@ val port: Int = getenv("PORT").toInt()
 suspend fun processor(): Unit = awaitCancellation()
 
 // Example
-fun main() = SuspendApp {
-  resourceScope {
-    server(Netty, host = host, port = port) { }
-    launch { processor() }
-    awaitCancellation()
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  resourceScope { // [!context ResourceScope] [!suspend]
+    server(Netty, host = host, port = port) { } // [!suspend]
+    launch { processor() } // [!suspend]
+    awaitCancellation() // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
 
 <JobTree
   :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 5 }"
@@ -305,9 +277,6 @@ clicks: 8
 <DrawnAnnotation text="dependencies()" on="0"/>
 <DrawnAnnotation text="server" color="var(--fundamentals-finalise)" on="3"/>
 <DrawnAnnotation text="dependencies()" color="var(--fundamentals-finalise)" on="4"/>
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2,3,4,5,6]">
 
 ```kotlin arrow
 import kotlinx.coroutines.*
@@ -342,19 +311,15 @@ suspend fun ResourceScope.coroutineScope(): CoroutineScope =
   }
 
 // Example
-fun main() = SuspendApp {
-  resourceScope {
-    val dep = dependencies()
-    server(Netty, host = host, port = port) { }
-    launch { dep.processor() }
-    awaitCancellation()
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  resourceScope { // [!context ResourceScope] [!suspend]
+    val dep = dependencies() // [!suspend]
+    server(Netty, host = host, port = port) { } // [!suspend]
+    launch { dep.processor() } // [!suspend]
+    awaitCancellation() // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
 
 <JobTree
   :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 7 }"
@@ -400,9 +365,6 @@ clicks: 7
 <DrawnAnnotation text="scope" color="var(--fundamentals-finalise)" on="4"/>
 <DrawnAnnotation text="scope.launch" color="var(--fundamentals-finalise)" on="4"/>
 <DrawnAnnotation text="dependencies()" color="var(--fundamentals-finalise)" on="5"/>
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2,3,4,5,6,7]">
 
 ```kotlin arrow
 import kotlinx.coroutines.*
@@ -437,20 +399,16 @@ suspend fun ResourceScope.coroutineScope(): CoroutineScope =
   }
 
 // Example
-fun main() = SuspendApp {
-  resourceScope {
-    val dep = dependencies()
-    val scope = coroutineScope()
-    server(Netty, host = host, port = port) { }
-    scope.launch { dep.processor() }
-    awaitCancellation()
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  resourceScope { // [!context ResourceScope] [!suspend]
+    val dep = dependencies() // [!suspend]
+    val scope = coroutineScope() // [!suspend]
+    server(Netty, host = host, port = port) { } // [!suspend]
+    scope.launch { dep.processor() } // [!suspend]
+    awaitCancellation() // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
 
 <JobTree
   :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 7 }"
@@ -489,10 +447,6 @@ magic-move
 
 <DrawnAnnotation text="@Serializable" label="Compiler plugin to generate serialization code" :connect="true" :geometry="{ label: { x: 0.4434, y: 0.1922 }, connector: { type: 'quadratic', start: { x: 0.2030, y: 0.2196 }, control: { x: 0.2173, y: 0.2196 }, end: { x: 0.2294, y: 0.1980 } } }"/>
 <DrawnAnnotation text="getAs<Config>" label="Read, and deserialize the configuration" :connect="true" :geometry="{ label: { x: 0.7430, y: 0.4796 } }"/>
-<TypeHint :line="4" receiver="SuspendAppScope">
-<TypeHint :line="6" context="ResourceScope">
-<TypeHint :line="9" receiver="Application">
-<SuspendGutter :lines="[7,8,9,12,13]">
 
 ```kotlin{1,2,5,9,10,11} arrow
 import arrow.fx.coroutines.ResourceScope
@@ -519,32 +473,24 @@ fun processor(): Flow<Unit> = emptyFlow()
 @Serializable
 data class Config(val host: String, val port: Int)
 
-fun main() = SuspendApp {
+fun main() = SuspendApp { // [!this SuspendAppScope]
   val config = ApplicationConfig("application.yaml").getAs<Config>()
-  resourceScope {
-    val dep = dependencies()
-    val scope = coroutineScope()
-    server(Netty, host = config.host, port = config.port) {
+  resourceScope { // [!context ResourceScope]
+    val dep = dependencies() // [!suspend]
+    val scope = coroutineScope() // [!suspend]
+    server(Netty, host = config.host, port = config.port) { // [!this Application] [!suspend]
 
     }
-    scope.launch { dep.processor() }
-    awaitCancellation()
+    scope.launch { dep.processor() } // [!suspend]
+    awaitCancellation() // [!suspend]
   }
 }
 
 ```
 
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
 ---
 
 # Configuring your Ktor server
-
-<TypeHint :line="2" receiver="ContentNegotiationConfig">
-<TypeHint :line="3" receiver="JsonBuilder">
 
 ```kotlin ktor
 import io.ktor.server.application.*
@@ -555,8 +501,8 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import kotlinx.serialization.json.Json
 
 fun Application.app() {
-  install(ContentNegotiation) {
-    json(Json {
+  install(ContentNegotiation) { // [!this ContentNegotiationConfig]
+    json(Json { // [!this JsonBuilder]
       isLenient = true
       ignoreUnknownKeys = true
     })
@@ -564,15 +510,9 @@ fun Application.app() {
 }
 ```
 
-</TypeHint>
-</TypeHint>
-
 ---
 
 # Configuring your Ktor server
-
-<TypeHint :line="2" receiver="ContentNegotiationConfig">
-<TypeHint :line="3" receiver="JsonBuilder">
 
 ```kotlin ktor
 import io.ktor.server.application.*
@@ -606,8 +546,8 @@ class CustomConverter : ContentConverter {
 
 //Example
 fun Application.app() {
-  install(ContentNegotiation) {
-    json(Json {
+  install(ContentNegotiation) { // [!this ContentNegotiationConfig]
+    json(Json { // [!this JsonBuilder]
       isLenient = true
       ignoreUnknownKeys = true
     })
@@ -615,9 +555,6 @@ fun Application.app() {
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
@@ -681,12 +618,10 @@ object Api : RootResource("api") {                   // api
 
 # Calling Ktor Spine routes
 
-<SuspendGutter :lines="[5,6]">
 <DrawnAnnotation text="Apache5" on="0" label="Support for many different clients across all KMP platforms" :connect="true" :geometry="{ label: { x: 0.5625, y: 0.3105, width: 0.4243 }, connector: { type: 'quadratic', start: { x: 0.2810, y: 0.2676 }, control: { x: 0.3999, y: 0.2619 }, end: { x: 0.4342, y: 0.3025 } } }"/>
 <DrawnAnnotation text="UserAlreadyExists" on="1" />
 <DrawnAnnotation text="InvalidUser" on="1" />
 <DrawnAnnotation text="User" occurrence="6" label="Handle all cases as defined by response and failures" on="1" :connect="true" :geometry="{ label: { x: 0.4133, y: 0.6818 } }"/>
-<TypeHint :line="2" receiver="HttpClientConfig<Apache5Config>">
 
 ```kotlin ktor
 import io.ktor.client.engine.apache5.Apache5
@@ -704,11 +639,11 @@ import presentation.support.*
 
 // Example
 suspend fun main() {
-  HttpClient(Apache5) {
+  HttpClient(Apache5) { // [!this HttpClientConfig<Apache5Config>]
     // Configure Apache5 Client
   }.use { client ->
-    client.request(Api / Users / create, CreateUser("johndoe"))
-      .handle(
+    client.request(Api / Users / create, CreateUser("johndoe")) // [!suspend]
+      .handle( // [!suspend]
         { _: UserAlreadyExists -> println("User already exists") },
         { errors: InvalidUser -> println(errors.errors.joinToString()) },
         { _: User -> println("User created") }
@@ -718,19 +653,13 @@ suspend fun main() {
 
 ```
 
-</TypeHint>
-</SuspendGutter>
-
 ---
 
 # Ktor Routes using Spine
 
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
 <DrawnAnnotation text="body" :connect="true" on="0"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.4481, y: 0.3153 }, control: { x: 0.5529, y: 0.3218 }, end: { x: 0.6209, y: 0.2636 } } }"/>
 <DrawnAnnotation text="respond(result.user)" label="" :connect="true" on="1"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.5036, y: 0.3647 }, control: { x: 0.6418, y: 0.3689 }, end: { x: 0.7178, y: 0.2754 } } }"/>
 <DrawnAnnotation text="fail(UserAlreadyExists)" label=""  on="2" :connect="true" :geometry="{ connector: { type: 'quadratic', start: { x: 0.5736, y: 0.4102 }, control: { x: 0.7606, y: 0.4337 }, end: { x: 0.8020, y: 0.2793 } } }"/>
-<SmartCast text="result" :line="4">
 
 ```kotlin ktor
 import io.ktor.server.application.*
@@ -752,19 +681,16 @@ sealed interface Result {
 fun insertUser(createUser: CreateUser): Result = TODO()
 
 //Example
-fun Application.users() = routing {
+fun Application.users() = routing { // [!this Routing]
+  // [!this TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>]
   route(Api.Users.create) {
     when(val result = insertUser(body)) {
-      is Success -> respond(result.user)
+      is Success -> respond(result.user) // [!smartcast result]
       AlreadyExists -> fail(UserAlreadyExists)
     }
   }
 }
 ```
-
-</SmartCast>
-</TypeHint>
-</TypeHint>
 
 ---
 magic-move
@@ -772,9 +698,6 @@ magic-move
 
 # When statement
 
-<TypeHint :line="8" receiver="Routing">
-<TypeHint :line="9" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
-<SmartCast text="result" :line="11">
 <DrawnAnnotation text="sealed interface" on="0" label="Closed inheritance within this compilation unit (module)" :connect="true" :geometry="{ label: { x: 0.6300, y: 0.1132 }, connector: { type: 'quadratic', start: { x: 0.2358, y: 0.2215 }, control: { x: 0.3537, y: 0.2305 }, end: { x: 0.3846, y: 0.1438 } } }"/>
 <DrawnAnnotation text="@JvmInline" on="1" label="Valhalla (JEP 401) will bring value classes to JVM,\n`@JvmInline` emulates it"  :connect="true" :geometry="{ label: { x: 0.5915, y: 0.1165, width: 0.5813 }, connector: { type: 'quadratic', start: { x: 0.1640, y: 0.2331 }, control: { x: 0.3511, y: 0.2287 }, end: { x: 0.4192, y: 0.1230 } } }"/>
 <DrawnAnnotation text="data object" on="2" label="Singleton object"  :connect="true" :geometry="{ label: { x: 0.2833, y: 0.3441 }, connector: { type: 'quadratic', start: { x: 0.1807, y: 0.3152 }, control: { x: 0.1831, y: 0.3383 }, end: { x: 0.1991, y: 0.3441 } } }"/>
@@ -799,27 +722,22 @@ sealed interface Result {
 
 suspend fun insertUser(createUser: CreateUser): Result = TODO()
 
-fun Application.users() = routing {
+fun Application.users() = routing { // [!this Routing]
+  // [!this TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>]
   route(Api.Users.create) {
     when(val result = insertUser(body)) {
-      is Success -> respond(result.user)
+      is Success -> respond(result.user) // [!smartcast result]
       AlreadyExists -> fail(UserAlreadyExists)
     }
   }
 }
 ```
 
-</SmartCast>
-</TypeHint>
-</TypeHint>
-
 ---
 
 # `Raise` adds an expected error to the signature
 
 <DrawnAnnotation text="Raise<UserAlreadyExists>" label="Can `Raise` a `UserAlreadyExists` error" :connect="true" :geometry="{ label: { x: 0.6504, y: 0.2589 }, connector: { type: 'quadratic', start: { x: 0.4494, y: 0.3155 }, control: { x: 0.4660, y: 0.3086 }, end: { x: 0.4750, y: 0.2799 } } }"/>
-<InlineCompilerError text="insertUser" :line="8" message="No context argument for `_: Raise<UserAlreadyExists>` found" style="--inline-compiler-error-message-size: 1.55rem">
-<TypeHint :line="7" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
 
 ```kotlin
 import arrow.core.raise.context.Raise
@@ -832,15 +750,14 @@ context(_: Raise<UserAlreadyExists>)
 suspend fun insertUser(createUser: CreateUser): User = TODO()
 
 fun Application.users() = routing {
+  // [!this TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>]
   route(Api.Users.create) {
+    // [!error style="--inline-compiler-error-message-size: 1.55rem" insertUser No context argument for `_: Raise<UserAlreadyExists>` found]
     val user = insertUser(body)
     respond(user)
   }
 }
 ```
-
-</TypeHint>
-</InlineCompilerError>
 
 ---
 
@@ -849,7 +766,6 @@ fun Application.users() = routing {
 <DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0"/>
 <DrawnAnnotation text="insertUser" :line="6" on="1" :connect="true"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.2855, y: 0.4646 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.8007, y: 0.4063 } } }"/>
 <DrawnAnnotation text="body" :line="6" on="2" :connect="true" label="Missing validation" color="red" :geometry="{ label: { x: 0.4971, y: 0.5251 }, connector: { type: 'quadratic', start: { x: 0.3651, y: 0.4686 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.6462, y: 0.4057 } } }"/>
-<TypeHint :line="5" context="Raise<InvalidUser>, Raise<UserAlreadyExists>">
 
 ```kotlin
 import arrow.core.raise.context.Raise
@@ -864,14 +780,12 @@ context(_: Raise<UserAlreadyExists>)
 suspend fun insertUser(createUser: CreateUser): User = TODO()
 
 fun Application.users() = routing {
-  routeWithRaise(Api.Users.create) {
+  routeWithRaise(Api.Users.create) { // [!context Raise<InvalidUser>, Raise<UserAlreadyExists>]
     val user = insertUser(body)
     respond(user)
   }
 }
 ```
-
-</TypeHint>
 
 ---
 
@@ -939,7 +853,6 @@ value class Username private constructor(val value: String) {
 
 # Validation
 
-<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="ensureOrAccumulate" />
 <DrawnAnnotation text="ensureOrAccumulate":occurrence="2" />
 <DrawnAnnotation text="ensureOrAccumulate" :occurrence="3" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<String>`"  :connect="true" :geometry="{ label: { x: 0.5382, y: 0.7478 }, connector: { type: 'quadratic', start: { x: 0.3209, y: 0.6066 }, control: { x: 0.3241, y: 0.6602 }, end: { x: 0.3209, y: 0.7270 } } }"/>
@@ -955,7 +868,7 @@ value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Username =
-      accumulate {
+      accumulate { // [!context Accumulate<String>, Raise<String>]
         ensureOrAccumulate(value.length >= 4) { "Username is too short" }
         ensureOrAccumulate(value.length <= 255) { "Username is too long" }
         ensureOrAccumulate(value.matches(Regex("[a-zA-Z0-9]+"))) { "Username is invalid" }
@@ -965,13 +878,9 @@ value class Username private constructor(val value: String) {
 }
 ```
 
-</TypeHint>
-
 ---
 
 # Validation
-
-<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 
 ```kotlin arrow
 import arrow.core.raise.context.Raise
@@ -984,7 +893,7 @@ value class Email private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Email =
-      accumulate {
+      accumulate { // [!context Accumulate<String>, Raise<String>]
         ensureOrAccumulate(value.contains("@")) { "Email is invalid" }
         Email(value)
       }
@@ -992,8 +901,6 @@ value class Email private constructor(val value: String) {
 }
 
 ```
-
-</TypeHint>
 
 ---
 
@@ -1051,7 +958,6 @@ magic-move
 
 # Validation
 
-<TypeHint :line="8" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="accumulating" />
 <DrawnAnnotation text="accumulating" occurrence="2" label="Lift `Raise<NonEmptyList<String>>` into `Accumulate<String>`"  :connect="true" :geometry="{ label: { x: 0.6418, y: 0.7430 } }"/>
 
@@ -1075,7 +981,7 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
     errors.reduce { acc, errors -> acc + errors }
   }) {
-    accumulate {
+    accumulate { // [!context Accumulate<String>, Raise<String>]
       val username by accumulating { Username(username) }
       val email by accumulating { Email(email) }
       CreateUser(username, email)
@@ -1083,15 +989,11 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
   }
 ```
 
-</TypeHint>
-
 ---
 magic-move
 ---
 
 # Validation
-
-<TypeHint :line="12" context="Accumulate<String>, Raise<String>">
 
 ```kotlin{1,2,6,9} arrow
 import arrow.core.raise.context.Raise
@@ -1117,21 +1019,18 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
     InvalidUser(errors.reduce { acc, errors -> acc + errors })
   }) {
     accumulate {
-      val username by accumulating { Username(username) }
+      val username by accumulating { Username(username) } // [!context Accumulate<String>, Raise<String>]
       val email by accumulating { Email(email) }
       CreateUser(username, email)
     }
   }
 ```
 
-</TypeHint>
-
 ---
 
 # Call directly in the route
 
 <DrawnAnnotation text="toCreateUser" :connect="true" :geometry="{ connector: { type: 'quadratic', start: { x: 0.4383, y: 0.3157 }, control: { x: 0.5142, y: 0.3131 }, end: { x: 0.6110, y: 0.2665 } } }"/>
-<TypeHint :line="2" context="Raise<InvalidUser>, Raise<UserAlreadyExists>" >
 
 ```kotlin
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
@@ -1147,15 +1046,13 @@ suspend fun insertUser(create: CreateUser): User = TODO()
 
 // Example
 fun Application.users() = routing {
-  routeWithRaise(Api.Users.create) {
+  routeWithRaise(Api.Users.create) { // [!context Raise<InvalidUser>, Raise<UserAlreadyExists>]
     val create = body.toCreateUser()
     val user = insertUser(create)
     respond(user)
   }
 }
 ```
-
-</TypeHint>
 
 ---
 
@@ -1257,9 +1154,6 @@ fun insertUser(create: CreateUser): User =
 
 # Handling the error supplies `Raise`
 
-<TypeHint :line="3" context="Raise<UserAlreadyExists>">
-<TypeHint :line="9" receiver="Transaction">
-
 ```kotlin arrow
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -1298,30 +1192,23 @@ fun PLSQLException.uniqueViolation(): Boolean = sqlState == "23505"
 // Example
 context(_: Transaction)
 fun insertUserOrNull(create: CreateUser): User? =
-  either { insertUser(create) }.getOrNull()
+  either { insertUser(create) }.getOrNull() // [!context Raise<UserAlreadyExists>]
 
 context(_: Raise<UserAlreadyExists>)
 suspend fun insertUserResult(database: Database, create: CreateUser): User =
   transaction(database) {
     insertUser(create)
-  }
+  } // [!this Transaction]
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
 # Ktor Routes using Spine
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="7" receiver="Transaction">
 <DrawnAnnotation text="Raise<UserAlreadyExists>"/>
 <DrawnAnnotation text="routeWithRaise"/>
 <DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
 <DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
-
 
 ```kotlin ktor
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
@@ -1342,17 +1229,16 @@ sealed interface Result
 data class Success(val user: User) : Result
 data object AlreadyExists : Result
 
-
 fun CreateUser.toCreateUser(): CreateUser = this
 
 //Example
 context(_: Transaction, _: Raise<UserAlreadyExists>)
 fun insertUser(create: CreateUser): User = TODO()
   
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
+fun Application.users(database: Database) = routing { // [!this Routing]
+  routeWithRaise(Api.Users.create) { // [!context context(Raise<AlreadyExists>, Raise<InvalidUser>)]
     val create = body.toCreateUser()
-    val user = transaction(database) {
+    val user = transaction(database) { // [!this Transaction]
       insertUser(create)
     }
     respond(user)
@@ -1360,19 +1246,11 @@ fun Application.users(database: Database) = routing {
 }
 ```
 
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
 ---
 class: job-slide job-slide-wide
 ---
 
 # Processors finish before dependencies close
-
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2,3,4,5,8,9]">
 
 ```kotlin arrow
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -1410,22 +1288,18 @@ suspend fun ResourceScope.coroutineScope(): CoroutineScope =
   }
 
 // Example
-fun main() = SuspendApp {
-  resourceScope {
-    val dep = dependencies()
-    val scope = coroutineScope()
-    server(Netty, host = host, port = port) {
+fun main() = SuspendApp { // [!this SuspendAppScope]
+  resourceScope { // [!context ResourceScope] [!suspend]
+    val dep = dependencies() // [!suspend]
+    val scope = coroutineScope() // [!suspend]
+    server(Netty, host = host, port = port) { // [!suspend]
       users(dep.database)
     }
-    scope.launch { dep.processor() }
-    awaitCancellation()
+    scope.launch { dep.processor() } // [!suspend]
+    awaitCancellation() // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
 
 <JobTree
 :root="{ label: 'SuspendApp' }"
@@ -1448,19 +1322,15 @@ cancel-label="SIGTERM"
 
 ---
 
-
 # A null check refines the type
 
 <DrawnAnnotation text="user == null" />
 <DrawnAnnotation text="user" :line="2" occurrence="3" connect="true" label="Smart casted `User?` to `User`" />
-<SmartCast text="user" :line="2" :occurrence="3">
 
 ```kotlin
 fun greeting(user: User?): String =
-  if (user == null) "Unknown user" else "Hello, ${user.name}"
+  if (user == null) "Unknown user" else "Hello, ${user.name}" // [!smartcast occurrence=3 user]
 ```
-
-</SmartCast>
 
 ---
 magic-move
@@ -1469,26 +1339,18 @@ magic-move
 # `when` handles absence and guarded values
 
 <DrawnAnnotation text="is User if user.active" />
-<SmartCast text="user" :line="3">
-<SmartCast text="user" :line="3" :occurrence="2">
 
 ```kotlin
 fun greeting(user: User?): String = when (user) {
   null -> "Unknown user"
-  is User if user.active -> "Hello, ${user.name}"
+  is User if user.active -> "Hello, ${user.name}" // [!smartcast user]
   is User -> "Your account is inactive"
 }
 ```
 
-</SmartCast>
-</SmartCast>
-
 ---
 
 # A sealed interface names every outcome
-
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :line="9">
 
 ```kotlin
 sealed interface Access {
@@ -1498,14 +1360,11 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Access.Granted -> "Hello, ${access.user.name}"
-  is Access.Suspended -> access.reason
+  is Access.Granted -> "Hello, ${access.user.name}" // [!smartcast access]
+  is Access.Suspended -> access.reason // [!smartcast access]
   Access.Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
 
 ---
 magic-move
@@ -1514,8 +1373,6 @@ magic-move
 # Context-sensitive resolution
 
 <DrawnAnnotation text="when (access)" label="Prefixed type is known"  :connect="true" :geometry="{ label: { x: 0.6973, y: 0.5960 } }"/>
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :line="9">
 
 ```kotlin
 sealed interface Access {
@@ -1525,19 +1382,15 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Granted -> "Hello, ${access.user.name}"
-  is Suspended -> access.reason
+  is Granted -> "Hello, ${access.user.name}" // [!smartcast access]
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
 
-
 > Experimental Kotlin 2.4.20
 >
 > `-Xcontext-sensitive-resolution`
-
-</SmartCast>
-</SmartCast>
 
 ---
 magic-move
@@ -1546,9 +1399,6 @@ magic-move
 # Check patterns with if-guard
 
 <DrawnAnnotation text="if access.user.active" label="if-guard checks condition" :connect="true" :geometry="{ label: { x: 0.6988, y: 0.6260 }, connector: { type: 'quadratic', start: { x: 0.4385, y: 0.5521 }, control: { x: 0.5647, y: 0.5437 }, end: { x: 0.5800, y: 0.6052 } } }"/>
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :occurrence="2" :line="8">
-<SmartCast text="access" :line="10">
 
 ```kotlin
 sealed interface Access {
@@ -1558,16 +1408,12 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Granted if access.user.active -> "Hello, ${access.user.name}"
+  is Granted if access.user.active -> "Hello, ${access.user.name}" // [!smartcast access]
   is Granted -> "Your account is inactive"
-  is Suspended -> access.reason
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
-</SmartCast>
 
 ---
 magic-move
@@ -1575,9 +1421,6 @@ magic-move
 
 # Destructuring follows property names
 
-<SmartCast text="access" :line="4">
-<SmartCast text="access" :line="5">
-<SmartCast text="access" :line="9">
 <DrawnAnnotation text="val (email, name)" label="Destructure by matching property names"  :connect="true" :geometry="{ label: { x: 0.5716, y: 0.4662 } }"/>
 
 ```kotlin
@@ -1591,19 +1434,15 @@ sealed interface Access {
 data class User(val name: String, val age: Int, val email: String, val active: Boolean = true)
 
 fun message(access: Access): String = when (access) {
-  is Granted if access.user.active -> {
-    val (email, name) = access.user
+  is Granted if access.user.active -> { // [!smartcast access]
+    val (email, name) = access.user // [!smartcast access]
     "$name <$email>"
   }
   is Granted -> "Your account is inactive"
-  is Suspended -> access.reason
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
-</SmartCast>
 
 > Experimental Kotlin 2.4.20
 >
@@ -1612,11 +1451,6 @@ fun message(access: Access): String = when (access) {
 ---
 
 # Destructuring follows property names
-
-<SmartCast text="access" :line="4">
-<SmartCast text="access" :line="6">
-<SmartCast text="access" :line="10">
-<InlineCompilerError text="email2" message="Unresolved reference `email2` on receiver of type `User`" color="red">
 
 ```kotlin
 sealed interface Access {
@@ -1629,21 +1463,18 @@ sealed interface Access {
 data class User(val name: String, val age: Int, val email: String, val active: Boolean = true)
 
 fun message(access: Access): String = when (access) {
-  is Granted if access.user.active -> {
+  is Granted if access.user.active -> { // [!smartcast access]
     
+    // [!error color=red email2 Unresolved reference `email2` on receiver of type `User`]
+    // [!smartcast access]
     val (email2, name) = access.user
     "$name <$email2>"
   }
   is Granted -> "Your account is inactive"
-  is Suspended -> access.reason
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
-
-</InlineCompilerError>
-</SmartCast>
-</SmartCast>
-</SmartCast>
 
 > Experimental Kotlin 2.4.20
 >
@@ -1663,8 +1494,6 @@ val iterable: Iterable<String> = ["a", "bb", "ccc"]
 
 # Custom collection literals
 
-<InlineCompilerError text="[&quot;a&quot;, &quot;bb&quot;, &quot;ccc&quot;]" message="`NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`">
-
 ```kotlin
 import arrow.core.nonEmptyListOf
 import arrow.core.NonEmptyList
@@ -1672,19 +1501,15 @@ data class NonEmptyList<A>(val head: A, val tail: List<A>)
 
 val literal: NonEmptyList<String> =
   
+  // [!error `["a", "bb", "ccc"]` `NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`]
   ["a", "bb", "ccc"]
 
 val nonEmptyList = NonEmptyList("a", ["bb", "ccc"])
 ```
 
-</InlineCompilerError>
-
 ---
 
 # Custom collection literals
-
-<InlineCompilerError text="NonEmptyList(&quot;a&quot;, [&quot;bb&quot;, &quot;ccc&quot;])" message="`constructor<A>(head: A, tail: List<A>): NonEmptyList<A>` is private">
-<InlineCompilerError text="[]" message="No value passed for parameter `head`">
 
 ```kotlin
 import arrow.core.nonEmptyListOf
@@ -1699,10 +1524,8 @@ data class NonEmptyList<A> private constructor(val head: A, val tail: List<A>) {
 val literal = ["a", "bb", "ccc"]
 
 val nonEmptyList =
+  // [!error `NonEmptyList("a", ["bb", "ccc"])` `constructor<A>(head: A, tail: List<A>): NonEmptyList<A>` is private]
   NonEmptyList("a", ["bb", "ccc"])
 
-val empty: NonEmptyList<String> = []
+val empty: NonEmptyList<String> = [] // [!error `[]` No value passed for parameter `head`]
 ```
-
-</InlineCompilerError>
-</InlineCompilerError>

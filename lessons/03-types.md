@@ -23,14 +23,11 @@ the service accepts and returns, starting with the User? already in the examples
 
 <DrawnAnnotation text="user == null" />
 <DrawnAnnotation text="user" :line="2" occurrence="3" connect="true" label="Smart casted `User?` to `User`" />
-<SmartCast text="user" :line="2" occurrence="3">
 
 ```kotlin
 fun greeting(user: User?): String =
-  if (user == null) "Unknown user" else "Hello, ${user.name}"
+  if (user == null) "Unknown user" else "Hello, ${user.name}" // [!smartcast occurrence=3 user]
 ```
-
-</SmartCast>
 
 ---
 magic-move
@@ -39,25 +36,20 @@ magic-move
 # `when` handles absence and guarded values
 
 <DrawnAnnotation text="is User if user.active" />
-<SmartCast text="user" :line="3" occurrence="2">
 
 ```kotlin
 fun greeting(user: User?): String = when (user) {
   null -> "Unknown user"
-  is User if user.active -> "Hello, ${user.name}"
+  is User if user.active -> "Hello, ${user.name}" // [!smartcast occurrence=2 user]
   is User -> "Your account is inactive"
 }
 ```
-
-</SmartCast>
 
 ---
 
 # A sealed interface names every outcome
 
 <DrawnAnnotation text="sealed interface" />
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :line="9">
 
 ```kotlin
 sealed interface Access {
@@ -67,14 +59,11 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Access.Granted -> "Hello, ${access.user.name}"
-  is Access.Suspended -> access.reason
+  is Access.Granted -> "Hello, ${access.user.name}" // [!smartcast access]
+  is Access.Suspended -> access.reason // [!smartcast access]
   Access.Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
 
 ---
 magic-move
@@ -82,10 +71,7 @@ magic-move
 
 # `-Xcontext-sensitive-resolution` in Kotlin 2.4.20
 
-
 <DrawnAnnotation text="when (access)" label="Prefixed type is known"  :connect="true" :geometry="{ label: { x: 0.6973, y: 0.5960 } }"/>
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :line="9">
 
 ```kotlin
 sealed interface Access {
@@ -95,14 +81,11 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Granted -> "Hello, ${access.user.name}"
-  is Suspended -> access.reason
+  is Granted -> "Hello, ${access.user.name}" // [!smartcast access]
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
 
 ---
 magic-move
@@ -111,9 +94,6 @@ magic-move
 # A sealed interface names every outcome
 
 <DrawnAnnotation text="if access.user.active" label="if-guard checks condition" :connect="true" :geometry="{ label: { x: 0.6988, y: 0.6260 }, connector: { type: 'quadratic', start: { x: 0.4385, y: 0.5521 }, control: { x: 0.5647, y: 0.5437 }, end: { x: 0.5800, y: 0.6052 } } }"/>
-<SmartCast text="access" :line="8">
-<SmartCast text="access" :occurrence="2" :line="8">
-<SmartCast text="access" :line="10">
 
 ```kotlin
 sealed interface Access {
@@ -123,16 +103,12 @@ sealed interface Access {
 }
 
 fun message(access: Access): String = when (access) {
-  is Granted if access.user.active -> "Hello, ${access.user.name}"
+  is Granted if access.user.active -> "Hello, ${access.user.name}" // [!smartcast access]
   is Granted -> "Your account is inactive"
-  is Suspended -> access.reason
+  is Suspended -> access.reason // [!smartcast access]
   Missing -> "Unknown user"
 }
 ```
-
-</SmartCast>
-</SmartCast>
-</SmartCast>
 
 ---
 
@@ -192,26 +168,20 @@ val iterable: Iterable<String> = ["a", "bb", "ccc"]
 
 # Custom collection literals
 
-<InlineCompilerError text="[&quot;a&quot;, &quot;bb&quot;, &quot;ccc&quot;]" message="`NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`">
-
 ```kotlin
 data class NonEmptyList<A>(val head: A, val tail: List<A>)
 
 val literal: NonEmptyList<String> =
   
+  // [!error `["a", "bb", "ccc"]` `NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`]
   ["a", "bb", "ccc"]
 
 val nonEmptyList = NonEmptyList("a", ["bb", "ccc"])
 ```
 
-</InlineCompilerError>
-
 ---
 
 # Custom collection literals
-
-<InlineCompilerError text="NonEmptyList(&quot;a&quot;, [&quot;bb&quot;, &quot;ccc&quot;])" message="`constructor<A>(head: A, tail: List<A>): NonEmptyList<A>` is private">
-<InlineCompilerError text="[]" message="No value passed for parameter `head`">
 
 ```kotlin
 data class NonEmptyList<A> private constructor(val head: A, val tail: List<A>) {
@@ -224,13 +194,11 @@ data class NonEmptyList<A> private constructor(val head: A, val tail: List<A>) {
 val literal = ["a", "bb", "ccc"]
 
 val nonEmptyList =
+  // [!error `NonEmptyList("a", ["bb", "ccc"])` `constructor<A>(head: A, tail: List<A>): NonEmptyList<A>` is private]
   NonEmptyList("a", ["bb", "ccc"])
 
-val empty = []
+val empty = [] // [!error `[]` No value passed for parameter `head`]
 ```
-
-</InlineCompilerError>
-</InlineCompilerError>
 
 ---
 
@@ -264,9 +232,6 @@ suspend fun insertUser(create: CreateUser): User =
 
 # Handling the error supplies `Raise`
 
-<TypeHint :line="3" context="Raise<UserAlreadyExists>">
-<TypeHint :line="9" context="Raise<UserAlreadyExists>">
-
 ```kotlin arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
@@ -288,32 +253,25 @@ suspend fun insertUser(create: CreateUser): User =
 // Example
 context(_: Transaction)
 suspend fun insertUserOrNull(create: CreateUser): User? =
-  recover({
+  recover({ // [!context Raise<UserAlreadyExists>]
     insertUser(create)
   }) { _ -> null }
 
 context(_: Transaction)
 suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User> =
-  either {
+  either { // [!context Raise<UserAlreadyExists>]
     insertUser(create)
   }
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
 # Ktor Routes using Spine
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="7" receiver="Transaction">
 <DrawnAnnotation text="Raise<UserAlreadyExists>"/>
 <DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
 <DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
 <DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
-
 
 ```kotlin ktor
 import presentation.support.*
@@ -336,19 +294,15 @@ fun insertUser(create: CreateUser): Result = TODO()
 context(_: Transaction, _: Raise<UserAlreadyExists>)
 suspend fun insertUser(create: CreateUser): User = TODO()
   
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
+fun Application.users(database: Database) = routing { // [!this Routing]
+  routeWithRaise(Api.Users.create) { // [!context context(Raise<AlreadyExists>, Raise<InvalidUser>)]
     val create = body.toCreateUser()
-    val user = transaction(database) {
+    val user = transaction(database) { // [!this Transaction]
       insertUser(create)
     }
     respond(user)
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
 
 ---

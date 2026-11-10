@@ -64,9 +64,6 @@ suspend fun insertUser(create: CreateUser): User =
 
 # Handling the error supplies `Raise`
 
-<TypeHint :line="3" context="Raise<UserAlreadyExists>">
-<TypeHint :line="9" context="Raise<UserAlreadyExists>">
-
 ```kotlin arrow
 import arrow.core.raise.Raise
 import arrow.core.raise.context.raise
@@ -88,32 +85,25 @@ suspend fun insertUser(create: CreateUser): User =
 // Example
 context(_: Transaction)
 suspend fun insertUserOrNull(create: CreateUser): User? =
-  recover({
+  recover({ // [!context Raise<UserAlreadyExists>]
     insertUser(create)
   }) { _ -> null }
 
 context(_: Transaction)
 suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User> =
-  either {
+  either { // [!context Raise<UserAlreadyExists>]
     insertUser(create)
   }
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
 # Ktor Routes using Spine
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="6" receiver="Transaction">
 <DrawnAnnotation text="Raise<UserAlreadyExists>"/>
 <DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
 <DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
 <DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
-
 
 ```kotlin ktor
 import presentation.support.*
@@ -136,19 +126,15 @@ fun insertUser(create: CreateUser): Result = TODO()
 context(_: Transaction, _: Raise<UserAlreadyExists>)
 suspend fun insertUser(create: CreateUser): User = TODO()
   
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
-    val user = transaction(database) {
+fun Application.users(database: Database) = routing { // [!this Routing]
+  routeWithRaise(Api.Users.create) { // [!context context(Raise<AlreadyExists>, Raise<InvalidUser>)]
+    val user = transaction(database) { // [!this Transaction]
       insertUser(body)
     }
     respond(user)
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
 
 ---
 
@@ -210,7 +196,6 @@ magic-move
 
 # Validation
 
-<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="ensureOrAccumulate" />
 <DrawnAnnotation text="ensureOrAccumulate" :occurrence="2" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5279, y: 0.7138 }, connector: { type: 'quadratic', start: { x: 0.1366, y: 0.5590 }, control: { x: 0.1389, y: 0.6177 }, end: { x: 0.1366, y: 0.6880 } } }"/>
 
@@ -220,7 +205,7 @@ value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Username =
-      accumulate {
+      accumulate { // [!context Accumulate<String>, Raise<String>]
         ensureOrAccumulate(value.length >= 4) { "Username is too short" }
         ensureOrAccumulate(value.length <= 255) { "Username is too long" }
         Username(value)
@@ -229,13 +214,10 @@ value class Username private constructor(val value: String) {
 }
 ```
 
-</TypeHint>
-
 ---
 
 # Validation
 
-<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="ensureOrAccumulate" />
 <DrawnAnnotation text="ensureOrAccumulate":occurrence="2" />
 <DrawnAnnotation text="ensureOrAccumulate" :occurrence="3" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<Error>`"  :connect="true" :geometry="{ label: { x: 0.5382, y: 0.7478 }, connector: { type: 'quadratic', start: { x: 0.3209, y: 0.6066 }, control: { x: 0.3241, y: 0.6602 }, end: { x: 0.3209, y: 0.7270 } } }"/>
@@ -246,7 +228,7 @@ value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Username =
-      accumulate {
+      accumulate { // [!context Accumulate<String>, Raise<String>]
         ensureOrAccumulate(value.length >= 4) { "Username is too short" }
         ensureOrAccumulate(value.length <= 255) { "Username is too long" }
         ensureOrAccumulate(value.matches(Regex("[a-zA-Z0-9]+"))) { "Username is invalid" }
@@ -256,13 +238,9 @@ value class Username private constructor(val value: String) {
 }
 ```
 
-</TypeHint>
-
 ---
 
 # Validation
-
-<TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 
 ```kotlin arrow
 @JvmInline
@@ -270,7 +248,7 @@ value class Email private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Email =
-      accumulate {
+      accumulate { // [!context Accumulate<String>, Raise<String>]
         ensureOrAccumulate(value.contains("@")) { "Email is invalid" }
         Email(value)
       }
@@ -278,8 +256,6 @@ value class Email private constructor(val value: String) {
 }
 
 ```
-
-</TypeHint>
 
 ---
 
@@ -318,7 +294,6 @@ magic-move
 
 # Validation
 
-<TypeHint :line="8" context="Accumulate<String>, Raise<String>">
 <DrawnAnnotation text="accumulating" />
 <DrawnAnnotation text="accumulating" occurrence="2" label="Lift `Raise<NonEmptyList<String>>` into `Accumulate<String>`"  :connect="true" :geometry="{ label: { x: 0.6418, y: 0.7430 } }"/>
 
@@ -330,7 +305,7 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
     it.reduce { acc, errors -> acc + errors }
   }) {
-    accumulate {
+    accumulate { // [!context Accumulate<String>, Raise<String>]
       val username by accumulating { Username(username) }
       val email by accumulating { Email(email) }
       User(username, email)
@@ -338,15 +313,11 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
   }
 ```
 
-</TypeHint>
-
 ---
 magic-move
 ---
 
 # Validation
-
-<TypeHint :line="12" context="Accumulate<String>, Raise<String>">
 
 ```kotlin{1,2,6,9} arrow
 @JvmInline
@@ -360,25 +331,22 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
     InvalidUser(it.reduce { acc, errors -> acc + errors })
   }) {
     accumulate {
-      val username by accumulating { Username(username) }
+      val username by accumulating { Username(username) } // [!context Accumulate<String>, Raise<String>]
       val email by accumulating { Email(email) }
       User(username, email)
     }
   }
 ```
 
-</TypeHint>
-
 ---
 
 # Call directly in the route 
 
 <DrawnAnnotation text="toCreateUser" :connect="true" :geometry="{ connector: { type: 'quadratic', start: { x: 0.4383, y: 0.3157 }, control: { x: 0.5142, y: 0.3131 }, end: { x: 0.6110, y: 0.2665 } } }"/>
-<TypeHint :line="2" context="Raise<InvalidUser>, Raise<UserAlreadyExists>" >
 
 ```kotlin
 fun Application.users() = routing {
-  routeWithRaise(Api.Users.create) {
+  routeWithRaise(Api.Users.create) { // [!context Raise<InvalidUser>, Raise<UserAlreadyExists>]
     val create = body.toCreateUser()
     when(val result = insertUser(create)) {
       is Success -> respond(result.user)
@@ -387,8 +355,6 @@ fun Application.users() = routing {
   }
 }
 ```
-
-</TypeHint>
 
 ---
 

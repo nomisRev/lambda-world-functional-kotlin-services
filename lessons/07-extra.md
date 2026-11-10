@@ -2,8 +2,6 @@
 
 # `suspend` is Continuation Passing Style
 
-<SuspendGutter :lines="[2]">
-
 ```kotlin
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
@@ -20,18 +18,15 @@ object sdk {
 
 // Example
 suspend fun insertUser(create: CreateUser): User =
-  suspendCoroutine { cont: Continuation<User> ->
+  suspendCoroutine { cont: Continuation<User> -> // [!suspend]
     
   }
 ```
-
-</SuspendGutter>
 
 ---
 
 # `suspend` is Continuation Passing Style
 
-<SuspendGutter :lines="[2]">
 <DrawnAnnotation text="cont.resume(value)" on="0" />
 <DrawnAnnotation text="cont.resumeWithException(error)" on="1" />
 
@@ -52,15 +47,13 @@ object sdk {
 
 // Example
 suspend fun insertUser(create: CreateUser): SdkUser =
-  suspendCoroutine { cont ->
+  suspendCoroutine { cont -> // [!suspend]
     sdk.execute(create.toSdkRequest(), object : RequestHandler<SdkUser>() {
       override fun onSuccess(value: SdkUser) = cont.resume(value)
       override fun onFailure(error: Throwable) = cont.resumeWithException(error)
     })
   }
 ```
-
-</SuspendGutter>
 
 ---
 
@@ -100,7 +93,6 @@ suspend fun insertSdkUser(create: CreateUser): SdkUser =
 # `suspend` is cancellable
 
 <DrawnAnnotation text="ensureActive()" label="Check cancellation, and stop if case of cancellation" />
-<SuspendGutter :lines="[3]">
 
 ```kotlin
 import kotlinx.coroutines.*
@@ -109,19 +101,16 @@ import kotlinx.coroutines.ensureActive
 
 suspend fun ByteArray.checksum() =
   foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) currentCoroutineContext().ensureActive()
+    if (index % 1024 == 0) currentCoroutineContext().ensureActive() // [!suspend]
     acc * 31 + byte
   }
 ```
-
-</SuspendGutter>
 
 ---
 
 # `suspend` is cancellable
 
 <DrawnAnnotation text="yield()" label="Fairness operator, reschedule yourself to allow interleaving of tasks" />
-<SuspendGutter :lines="[3]">
 
 ```kotlin
 import kotlinx.coroutines.*
@@ -130,12 +119,10 @@ import kotlinx.coroutines.ensureActive
 
 suspend fun ByteArray.checksum() =
   foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) yield()
+    if (index % 1024 == 0) yield() // [!suspend]
     acc * 31 + byte
   }
 ```
-
-</SuspendGutter>
 
 ---
 
@@ -143,7 +130,6 @@ suspend fun ByteArray.checksum() =
 
 <DrawnAnnotation text="Channel<Event>" label="KotlinX Coroutines suspending Queue" on="0"  :geometry="{ label: { x: 0.5182, y: 0.3454 } }"/>
 <DrawnAnnotation text="for (event in events)" label="Suspending iterator" on="1"  :geometry="{ label: { x: 0.3758, y: 0.3484 } }"/>
-<SuspendGutter :lines="[3, 4]">
 
 ```kotlin
 import kotlinx.coroutines.channels.Channel
@@ -153,13 +139,11 @@ object sdk { fun events(): Channel<Event> = Channel() }
 // Example
 suspend fun processor() {
   val events: Channel<Event> = sdk.events()
-  for (event in events) {
-    handle(event)
+  for (event in events) { // [!suspend]
+    handle(event) // [!suspend]
   }
 }
 ```
-
-</SuspendGutter>
 
 ---
 
@@ -168,7 +152,6 @@ suspend fun processor() {
 <DrawnAnnotation text="consumeAsFlow" label="Flow is a concurrent stream" on="0"  :geometry="{ label: { x: 0.4948, y: 0.3006 } }"/>
 <DrawnAnnotation text="map" label="Supports `suspend`" on="1"  :geometry="{ label: { x: 0.3781, y: 0.3645 }, connector: { type: 'quadratic', start: { x: 0.1471, y: 0.3139 }, control: { x: 0.2469, y: 0.3147 }, end: { x: 0.2928, y: 0.3436 } } }" :connect="true"/>
 <DrawnAnnotation text="collect" label="Drain the `Flow`, `suspend` awaits until entire `Flow` is drained" on="2"  :geometry="{ label: { x: 0.4747, y: 0.3914 }, connector: { type: 'quadratic', start: { x: 0.1522, y: 0.3724 }, control: { x: 0.1703, y: 0.3995 }, end: { x: 0.1921, y: 0.3955 } } }" :connect="true"/>
-<SuspendGutter :lines="[3,4]">
 
 ```kotlin
 import kotlinx.coroutines.flow.*
@@ -185,12 +168,10 @@ object sdk {
 // Example
 suspend fun processor() {
   sdk.events().consumeAsFlow()
-    .map { handle(it) }
-    .collect()
+    .map { handle(it) } // [!suspend]
+    .collect() // [!suspend]
 }
 ```
-
-</SuspendGutter>
 
 ---
 
@@ -379,10 +360,6 @@ suspend fun program(): Unit {
 <DrawnAnnotation text="async" occurrence="2" />
 <DrawnAnnotation text="await()"/>
 <DrawnAnnotation text="await()" occurrence="2" />
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="4" receiver="CoroutineScope">
-
 
 ```kotlin{4-8} ktor
 import arrow.core.raise.context.Raise
@@ -412,10 +389,10 @@ context(_: Transaction, _: Raise<UserAlreadyExists>)
 fun insertUser(create: CreateUser): User = TODO()
   
 //Example
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
+fun Application.users(database: Database) = routing { // [!this Routing]
+  routeWithRaise(Api.Users.create) { // [!context context(Raise<AlreadyExists>, Raise<InvalidUser>)]
     val create = body.toCreateUser()
-    val userWithProfile = coroutineScope {
+    val userWithProfile = coroutineScope { // [!this CoroutineScope]
         val user = async { transaction(database) { insertUser(create) } }
         val profile = async { transaction(database) { createProfile(create) } }
         user.await().withProfile(profile.await())
@@ -424,10 +401,6 @@ fun Application.users(database: Database) = routing {
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
 
 <!--
 
@@ -441,9 +414,6 @@ Source: https://kotlinlang.org/docs/composing-suspending-functions.html
 ---
 
 # Typed authentication
-
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 
 ```kotlin
 import io.ktor.server.application.*
@@ -465,16 +435,13 @@ fun insertUser(createUser: CreateUser): Result = TODO()
 fun getAllUsers(): List<User> = emptyList()
 
 //Example
-fun Application.users() = routing {
-  route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
     val users = getAllUsers()
     respond(users)
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
 
 ---
 
@@ -511,10 +478,6 @@ val jwt: AuthenticationScheme<JwtUser, Unit> =
 
 # Typed authentication
 
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
 ```kotlin{1,5,6,10,11|7} ktor 
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -534,9 +497,9 @@ fun getAllUsers(): List<User> = emptyList()
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtUser>("ktor-arrow-server") { }
 
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  authenticateWith(jwt) { // [!context context(PrincipalContext<JwtUser>, Unit)]
+    route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
       val user = call.principal
       val users = getAllUsers()
       respond(users)
@@ -545,19 +508,11 @@ fun Application.users() = routing {
 }
 ```
 
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
 ---
 magic-move
 ---
 
 # Typed authentication
-
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 
 ```kotlin{7,14-16} ktor 
 import io.ktor.server.auth.principal as typedPrincipal
@@ -579,9 +534,9 @@ fun getAllUsers(): List<User> = emptyList()
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtUser>("ktor-arrow-server") { }
 
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
+fun Application.users() = routing { // [!this Routing]
+  authenticateWith(jwt) { // [!context context(PrincipalContext<JwtUser>, Unit)]
+    route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
       val user = call.principal
       val users = getAllUsers()
       respond(users)
@@ -594,17 +549,10 @@ val <P : Any> ApplicationCall.principal: P
   get() = this.typedPrincipal
 ```
 
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
 ---
 
 # Typed authentication
 
-<TypeHint :line="5" receiver="Routing">
-<TypeHint :line="6" context="context(RolesContext<JwtUser, JwtRole>, PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="7" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 <DrawnAnnotation text="SchemeWithRoles<JwtUser, JwtRole" label="Roles become part of the typed scheme too"  :connect="true" :geometry="{ label: { x: 0.6637, y: 0.3117 }, connector: { type: 'quadratic', start: { x: 0.5634, y: 0.2278 }, control: { x: 0.5649, y: 0.2560 }, end: { x: 0.5634, y: 0.2908 } } }"/>
 <DrawnAnnotation text="roles = [Role.Admin]" />
 <DrawnAnnotation text="call.roles" />
@@ -629,9 +577,10 @@ val jwt: AuthenticationSchemeWithRoles<JwtUser, JwtRole, Unit, AuthenticationSch
     jwt<JwtUser>("ktor-arrow-server") { }
       .withRoles { it.roles }
 
-fun Application.users() = routing {
+fun Application.users() = routing { // [!this Routing]
+  // [!context context(RolesContext<JwtUser, JwtRole>, PrincipalContext<JwtUser>, Unit)]
   authenticateWith(jwt, roles = [Role.Admin]) {
-    route(Api.Users.list) {
+    route(Api.Users.list) { // [!this TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>]
       val user = call.principal
       val roles = user.roles
       val users = getAllUsers()
@@ -640,7 +589,3 @@ fun Application.users() = routing {
   }
 }
 ```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>

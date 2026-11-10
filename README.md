@@ -43,35 +43,26 @@ reconnection after a restart. These checks do not replace testing on a physical 
 
 ### Suspend gutter icons
 
-Wrap a single code fence in the auto-imported `SuspendGutter` component:
+Mark a suspension point with a `[!suspend]` code mark on its line; the theme
+collects the marks of a fence into a `SuspendGutter` around it:
 
 ````md
-<SuspendGutter :lines="[2, 3]">
-
 ```kotlin
 suspend fun program() {
-  kotlinx.coroutines.delay(100)
-  kotlinx.coroutines.yield()
+  kotlinx.coroutines.delay(100) // [!suspend]
+  kotlinx.coroutines.yield() // [!suspend]
 }
 ```
-
-</SuspendGutter>
 ````
 
-`lines` contains one-based source line numbers within the fence, counting blank
-lines regardless of any displayed `startLine`. Duplicate numbers are deduplicated;
-invalid, blank, and missing lines are ignored. The markers identify manually
-selected potential suspension points; the component does not analyze Kotlin.
-An optional `label` prop changes the default “Suspension point” accessible label
-and tooltip.
-
-This deck-local component uses the sibling theme's line-matching helpers for
-ordinary Shiki fences and Magic Move. It follows the current step's line numbers,
-hides during token transitions, and places icons outside the code window's left
-border without changing the window position or code padding. The supplied
-JetBrains suspend-call SVGs switch automatically between light and dark variants.
-Use `--suspend-gutter-size` (default `1em`) and `--suspend-gutter-gap` (default
-`0.35em`, between the icon and window) in CSS to customize their placement.
+The marks identify manually selected potential suspension points; the component
+does not analyze Kotlin. They share a comment with the other marks of the line
+(`resourceScope { // [!context ResourceScope] [!suspend]`), move with their line
+through a Magic Move chain, and never reach the generated Kotlin sources or the
+handout. `SuspendGutter` ships with the theme since 0.14.0, together with the
+`[!this …]`, `[!context …]`, `[!smartcast …]`, and `[!error …]` marks the
+lessons use instead of hand-closed `TypeHint`, `SmartCast`, and
+`InlineCompilerError` wrappers; see "Code marks" in the theme README.
 
 ### Compilation
 

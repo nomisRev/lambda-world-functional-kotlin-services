@@ -52,7 +52,6 @@ magic-move
 # A receiver supplies the context
 
 <DrawnAnnotation text="with(logger)" />
-<TypeHint text="with(logger) {" receiver="Logger">
 
 ```kotlin
 context(logger: Logger)
@@ -62,10 +61,8 @@ fun welcome(user: User): String {
 }
 
 fun greeting(logger: Logger, user: User): String =
-  with(logger) { welcome(user) }
+  with(logger) { welcome(user) } // [!this text=`with(logger) {` Logger]
 ```
-
-</TypeHint>
 
 <!--
 
@@ -113,7 +110,6 @@ Source: https://ktor.io/docs/server-typed-auth.html
 
 <DrawnAnnotation text="authenticateWith" />
 <DrawnAnnotation text="call.principal" />
-<TypeHint text="authenticateWith(auth) {" context="PrincipalContext<UserIdPrincipal>">
 
 ```kotlin
 import io.ktor.server.application.Application
@@ -134,7 +130,7 @@ private fun authentication(verify: suspend (String, String) -> Boolean) =
 fun Application.secureRoutes(verify: suspend (String, String) -> Boolean) {
   val auth = authentication(verify)
   routing {
-    authenticateWith(auth) {
+    authenticateWith(auth) { // [!context text=`authenticateWith(auth) {` PrincipalContext<UserIdPrincipal>]
       get("/me") {
         val user: UserIdPrincipal = call.principal
         call.respondText("Hello, ${user.name}")
@@ -143,8 +139,6 @@ fun Application.secureRoutes(verify: suspend (String, String) -> Boolean) {
   }
 }
 ```
-
-</TypeHint>
 
 <!--
 
