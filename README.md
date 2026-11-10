@@ -13,11 +13,31 @@ npm ci
 npm run dev
 ```
 
-`npm run present` enables remote presentation control. `npm run build` produces the static site in `dist/`. `npm run export` exports a PDF; `npm run screenshot` exports PNG slides.
+`npm run present:dev` enables remote control on the development server. `npm run build` produces the static site in `dist/`. `npm run export` exports a PDF; `npm run screenshot` exports PNG slides.
 
 The theme is a local dependency at `../slidedev-theme-kotlin`; keep the sibling checkout available.
 
 Use the committed lockfile: it matches the working reference decks' dependency versions, including Vite 8.3.0. This avoids a production CSS build failure observed with a fresh dependency resolution.
+
+## Production presentation with a phone remote
+
+```sh
+npm run build
+npm run present
+```
+
+This serves the built `dist/` files on port 4174 and relays navigation locally.
+Open the printed display URL on your laptop and the phone remote URL on your
+phone, on the same local network. Tap the right half to advance or the left half
+to go back. The phone shows upcoming content, speaker notes, and connection status.
+No internet connection is required. This server is for a trusted local network.
+
+Use `PORT=4175 npm run present` to change the port. Rebuild and reload both devices
+after source changes. `npm run present` does not rebuild the deck automatically.
+
+With the server running, `npm run test:remote` checks navigation in separate browser
+contexts. `npm run test:remote-restart` starts its own server on port 4175 and checks
+reconnection after a restart. These checks do not replace testing on a physical phone.
 
 ## Check the Kotlin examples
 

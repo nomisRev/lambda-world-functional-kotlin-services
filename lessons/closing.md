@@ -9,6 +9,7 @@ kodee: wave
 - `CoroutineScope` and `ResourceScope` → owned lifetimes
 - `context` → required capabilities
 - Domain types and `Raise` → values and expected failures
+- There is so much more!!!
 
 > **Everything composes together**
 

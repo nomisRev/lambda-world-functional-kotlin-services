@@ -59,3 +59,6 @@ src: ./lessons/01-suspend.md
 ---
 src: ./lessons/closing.md
 ---
+---
+src: ./lessons/07-extra.md
+---

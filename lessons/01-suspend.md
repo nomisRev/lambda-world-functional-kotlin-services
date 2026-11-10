@@ -1,22 +1,4 @@
 ---
-layout: intro
-class: section-slide
-kodee: wave
----
-
-<!-- @formatter:off -->
-
-<div class="lesson-number">Part 1</div>
-
-# What is suspend?
-
-## Compose work and its lifetime
-
-<!--
-Start with the smallest signature.
--->
-
----
 clicks: 4
 ---
 
@@ -172,7 +154,7 @@ fun main() = SuspendApp {
 <v-click at="+2">
   <ul>
      <li>Cancellation on <code>SIGINT</code> & <code>SIGTERM</code></li>
-     <li>Await all cancelled <code>Job</code>s to complete</li>
+     <li>Await all cancelled coroutines to complete</li>
      <li>Structured Concurrency through KotlinX Coroutines</li>
   </ul>
 </v-click>
@@ -308,7 +290,7 @@ fun main() = SuspendApp {
 
 ---
 class: job-slide job-slide-wide
-clicks: 7
+clicks: 8
 ---
 
 # Resources are released in reverse order
@@ -367,7 +349,7 @@ fun main() = SuspendApp {
 </TypeHint>
 
 <JobTree
-  :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 6 }"
+  :root="{ label: 'SuspendApp', cancelling: 1, cancelled: 7 }"
   :children="[
     {
       label: 'resourceScope', kind: 'scope', cancelling: 2, cancelled: 5,
@@ -376,15 +358,15 @@ fun main() = SuspendApp {
         { label: 'server(Netty)', kind: 'resource', order: 2, finalising: 3, done: 4, exit: 'Cancelled' },
       ],
     },
-    { label: 'launch { dep.processor() }', cancelling: 2, cancelled: 3 },
+    { label: 'launch { dep.processor() }', cancelling: 2, cancelled: 6 },
   ]"
   :cancel="1"
   cancel-label="SIGTERM"
 />
 
-<v-click at="+7">
+<v-click at="+5">
   <ul>
-    <li color="red">Race condition between <code>dependencies</code> and <code>launch</code></li>
+    <li color="#FF0000">Race condition between <code>dependencies</code> and <code>launch</code></li>
   </ul>
 </v-click>
 
@@ -792,7 +774,7 @@ import presentation.support.*
 //Example
 sealed interface Result { 
   @JvmInline class Success(val user: User) : Result
-  data object AlreadyExists : Result
+  data object UserAlreadyExists : Result
 }
 
 suspend fun insertUser(createUser: CreateUser): Result = TODO()
@@ -815,11 +797,14 @@ fun Application.users() = routing {
 
 # `Raise` adds an expected error to the signature
 
-<InlineCompilerError text="insertUser" :line="6" message="No context argument for '_: Raise<AlreadyExists>' found">
-<TypeHint :line="5" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
+<DrawnAnnotation text="Raise<UserAlreadyExists>" label="Can `Raise` a `UserAlreadyExists` error" :connect="true" :geometry="{ label: { x: 0.6504, y: 0.2589 }, connector: { type: 'quadratic', start: { x: 0.4494, y: 0.3155 }, control: { x: 0.4660, y: 0.3086 }, end: { x: 0.4750, y: 0.2799 } } }"/>
+<InlineCompilerError text="insertUser" :line="8" message="No context argument for `_: Raise<UserAlreadyExists>` found" style="--inline-compiler-error-message-size: 1.55rem">
+<TypeHint :line="7" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
 
 ```kotlin
-context(_: Raise<AlreadyExists>)
+data object UserAlreadyExists
+
+context(_: Raise<UserAlreadyExists>)
 suspend fun insertUser(createUser: CreateUser): User = TODO()
 
 fun Application.users() = routing {
@@ -837,8 +822,9 @@ fun Application.users() = routing {
 
 # `Raise` adds an expected error to the signature
 
-<DrawnAnnotation text="insertUser" :line="6" on="0" :connect="true"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.2855, y: 0.4646 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.8007, y: 0.4063 } } }"/>
-<DrawnAnnotation text="body" :line="6" on="1" :connect="true" label="Missing validation" color="red" :geometry="{ label: { x: 0.4971, y: 0.5251 }, connector: { type: 'quadratic', start: { x: 0.3651, y: 0.4686 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.6462, y: 0.4057 } } }"/>
+<DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0"/>
+<DrawnAnnotation text="insertUser" :line="6" on="1" :connect="true"  :geometry="{ connector: { type: 'quadratic', start: { x: 0.2855, y: 0.4646 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.8007, y: 0.4063 } } }"/>
+<DrawnAnnotation text="body" :line="6" on="2" :connect="true" label="Missing validation" color="red" :geometry="{ label: { x: 0.4971, y: 0.5251 }, connector: { type: 'quadratic', start: { x: 0.3651, y: 0.4686 }, control: { x: 0.4678, y: 0.5416 }, end: { x: 0.6462, y: 0.4057 } } }"/>
 <TypeHint :line="5" context="Raise<InvalidUser>, Raise<UserAlreadyExists>">
 
 ```kotlin
@@ -1091,6 +1077,219 @@ suspend fun process(id: UserId): Unit | MissingUser | NotEligible =
 
 ---
 
+# `Raise` adds an expected error to the signature
+
+<DrawnAnnotation text="Transaction" label="Type of the Exposed Typed SQL DSL" :connect="true" :geometry="{ label: { x: 0.5265, y: 0.1903 }, connector: { type: 'quadratic', start: { x: 0.3039, y: 0.2237 }, control: { x: 0.3295, y: 0.2200 }, end: { x: 0.3529, y: 0.1975 } } }"/>
+
+```kotlin{1-2} arrow
+context(_: Transaction)
+suspend fun insertUser(create: CreateUser): User =
+  UserTable.insertReturning { insert ->
+    insert[username] = create.username
+    insert[email] = create.email
+  }.toUser()
+```
+
+---
+
+# `Raise` adds an expected error to the signature
+
+<DrawnAnnotation text="catch" on="0" />
+<DrawnAnnotation text="PLSQLException" on="0" label="`catch` specific errors and lift them to type signature"  :connect="true" :geometry="{ label: { x: 0.6281, y: 0.5964 }, connector: { type: 'quadratic', start: { x: 0.3260, y: 0.6474 }, control: { x: 0.3667, y: 0.6510 }, end: { x: 0.3826, y: 0.6154 } } }"/>
+<DrawnAnnotation text="Raise<UserAlreadyExists>" on="1" />
+<DrawnAnnotation text="raise(UserAlreadyExists(" on="1" label="Raise error into `context(Raise<UserAlreadyExists>)`"  :connect="true" :geometry="{ label: { x: 0.6246, y: 0.7644 } }"/>
+
+```kotlin{1,3-5,10-13} arrow
+import arrow.core.raise.Raise
+import arrow.core.raise.context.raise
+
+value class UserAlreadyExists(val username: String)
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException -> 
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
+```
+
+---
+
+# Handling the error supplies `Raise`
+
+<TypeHint :line="3" context="Raise<UserAlreadyExists>">
+<TypeHint :line="9" receiver="Transaction">
+
+```kotlin arrow
+import arrow.core.raise.Raise
+import arrow.core.raise.context.raise
+
+value class UserAlreadyExists(val username: String)
+
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User =
+  catch({
+    UserTable.insertReturning { insert ->
+      insert[username] = create.username
+      insert[email] = create.email
+    }.toUser()
+  }) { e: PLSQLException ->
+    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
+    else throw e
+  }
+
+// Example
+context(_: Transaction)
+suspend fun insertUserOrNull(create: CreateUser): User? =
+  recover({
+    insertUser(create)
+  }) { _ -> null }
+
+context(_: Raise<UserAlreadyExists>)
+suspend fun insertUserResult(database: Database, create: CreateUser): User =
+  transaction(database) {
+    insertUser(create)
+  }
+```
+
+</TypeHint>
+</TypeHint>
+
+---
+
+# Ktor Routes using Spine
+
+<TypeHint :line="4" receiver="Routing">
+<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
+<TypeHint :line="7" receiver="Transaction">
+<DrawnAnnotation text="Raise<UserAlreadyExists>"/>
+<DrawnAnnotation text="routeWithRaise"/>
+<DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
+<DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
+
+
+```kotlin ktor
+import presentation.support.*
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import presentation.snippets.s01suspend.slide32.Api
+import presentation.snippets.s01suspend.slide32.CreateUser
+
+sealed interface Result
+data class Success(val user: User) : Result
+data object AlreadyExists : Result
+
+fun insertUser(create: CreateUser): Result = TODO()
+
+//Example
+context(_: Transaction, _: Raise<UserAlreadyExists>)
+suspend fun insertUser(create: CreateUser): User = TODO()
+  
+fun Application.users(database: Database) = routing {
+  routeWithRaise(Api.Users.create) {
+    val create = body.toCreateUser()
+    val user = transaction(database) {
+      insertUser(create)
+    }
+    respond(user)
+  }
+}
+```
+
+</TypeHint>
+</TypeHint>
+</TypeHint>
+
+---
+class: job-slide job-slide-wide
+---
+
+# Processors finish before dependencies close
+
+<TypeHint :line="1" receiver="SuspendAppScope">
+<TypeHint :line="2" context="ResourceScope">
+<SuspendGutter :lines="[2,3,4,5,8,9]">
+
+```kotlin arrow
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.ResourceScope
+import arrow.fx.coroutines.resourceScope
+import io.ktor.server.netty.Netty
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import java.lang.System.getenv
+
+val host: String = getenv("HOST")
+val port: Int = getenv("PORT").toInt()
+
+class Dependencies {
+  suspend fun processor(): Unit = awaitCancellation()
+  suspend fun close(): Unit = Unit
+}
+
+suspend fun ResourceScope.dependencies(): Dependencies =
+  install({ Dependencies() }) { dep, _ -> dep.close() }
+
+suspend fun ResourceScope.coroutineScope(): CoroutineScope =
+  install({ CoroutineScope(SupervisorJob() + Dispatchers.Default) }) { scope, _ ->
+    scope.coroutineContext.job.cancelAndJoin()
+  }
+
+// Example
+fun main() = SuspendApp {
+  resourceScope {
+    val dep = dependencies()
+    val scope = coroutineScope()
+    server(Netty, host = host, port = port) {
+      users(dep.database)
+    }
+    scope.launch { dep.processor() }
+    awaitCancellation()
+  }
+}
+```
+
+</SuspendGutter>
+</TypeHint>
+</TypeHint>
+
+<JobTree
+:root="{ label: 'SuspendApp' }"
+:children="[
+{
+label: 'resourceScope', kind: 'scope',
+children: [
+{ label: 'dependencies()', kind: 'resource' },
+{
+label: 'coroutineScope()', kind: 'resource',
+children: [{ label: 'launch { dep.processor() }' }],
+},
+{ label: 'server(Netty)', kind: 'resource' },
+],
+},
+]"
+:cancel="1"
+cancel-label="SIGTERM"
+/>
+
+---
+
+
 # A null check refines the type
 
 <DrawnAnnotation text="user == null" />
@@ -1339,734 +1538,8 @@ val literal = ["a", "bb", "ccc"]
 val nonEmptyList =
   NonEmptyList("a", ["bb", "ccc"])
 
-val empty = []
+val empty: NonEmptyList<String> = []
 ```
 
 </InlineCompilerError>
 </InlineCompilerError>
-
----
-
-# `suspend` is Continuation Passing Style
-
-<SuspendGutter :lines="[2]">
-
-```kotlin
-suspend fun insertUser(create: CreateUser): User =
-  suspendCoroutine { cont: Continuation<List<Event>> ->
-    
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `suspend` is Continuation Passing Style
-
-<SuspendGutter :lines="[2]">
-<DrawnAnnotation text="cont.resume(value)" on="0" />
-<DrawnAnnotation text="cont.resumeWithException(error)" on="1" />
-
-```kotlin
-suspend fun insertUser(create: CreateUser): SdkUser =
-  suspendCoroutine { cont ->
-    sdk.execute(create.toSdkRequest(), object : RequestHandler<SdkUser>() {
-      override fun onSuccess(value: SdkUser) = cont.resume(value)
-      override fun onFailure(error: Throwable) = cont.resumeWithException(error)
-    })
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `suspend` is cancellable
-
-<DrawnAnnotation text="call" />
-<DrawnAnnotation text="invokeOnCancellation { call.cancel() }" />
-
-```kotlin
-suspend fun insertSdkUser(create: CreateUser): SdkUser =
-  suspendCoroutineCancellable { cont ->
-    val call = sdk.execute(create.toSdkRequest(), object : RequestHandler<SdkUser>() {
-      override fun onSuccess(value: SdkUser) = cont.resume(value)
-      override fun onFailure(error: Throwable) = cont.resumeWithException(error)
-    })
-    cont.invokeOnCancellation { call.cancel() }
-  }
-```
-
----
-
-# `suspend` is cancellable
-
-<DrawnAnnotation text="ensureActive()" label="Check cancellation, and stop if case of cancellation" />
-<SuspendGutter :lines="[3]">
-
-```kotlin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-
-suspend fun ByteArray.checksum() =
-  foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) currentCoroutineContext().ensureActive()
-    acc * 31 + byte
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `suspend` is cancellable
-
-<DrawnAnnotation text="yield()" label="Fairness operator, reschedule yourself to allow interleaving of tasks" />
-<SuspendGutter :lines="[3]">
-
-```kotlin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-
-suspend fun ByteArray.checksum() =
-  foldIndexed(0L) { index, acc, byte ->
-    if (index % 1024 == 0) yield()
-    acc * 31 + byte
-  }
-```
-
-</SuspendGutter>
-
----
-
-# `Raise` adds an expected error to the signature
-
-<DrawnAnnotation text="Transaction" label="Type of the Exposed Typed SQL DSL" :connect="true" :geometry="{ label: { x: 0.5265, y: 0.1903 }, connector: { type: 'quadratic', start: { x: 0.3039, y: 0.2237 }, control: { x: 0.3295, y: 0.2200 }, end: { x: 0.3529, y: 0.1975 } } }"/>
-
-```kotlin arrow
-context(_: Transaction)
-suspend fun insertUser(create: CreateUser): User =
-  UserTable.insertReturning { insert ->
-    insert[username] = create.username
-    insert[email] = create.email
-  }.toUser()
-```
-
----
-
-# `Raise` adds an expected error to the signature
-
-<DrawnAnnotation text="catch" on="0" />
-<DrawnAnnotation text="PLSQLException" on="0" label="`catch` specific errors and lift them to type signature"  :connect="true" :geometry="{ label: { x: 0.6281, y: 0.5964 }, connector: { type: 'quadratic', start: { x: 0.3260, y: 0.6474 }, control: { x: 0.3667, y: 0.6510 }, end: { x: 0.3826, y: 0.6154 } } }"/>
-<DrawnAnnotation text="Raise<UserAlreadyExists>" on="1" />
-<DrawnAnnotation text="raise(UserAlreadyExists(" on="1" label="Raise error into `context(Raise<UserAlreadyExists>)`"  :connect="true" :geometry="{ label: { x: 0.6246, y: 0.7644 } }"/>
-
-```kotlin{1,3-5,10-13} arrow
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-
-value class UserAlreadyExists(val username: String)
-
-context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User =
-  catch({
-    UserTable.insertReturning { insert ->
-      insert[username] = create.username
-      insert[email] = create.email
-    }.toUser()
-  }) { e: PLSQLException -> 
-    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
-    else throw e
-  }
-```
-
----
-
-# Handling the error supplies `Raise`
-
-<TypeHint :line="3" context="Raise<UserAlreadyExists>">
-<TypeHint :line="9" context="Raise<UserAlreadyExists>">
-
-```kotlin arrow
-import arrow.core.raise.Raise
-import arrow.core.raise.context.raise
-
-value class UserAlreadyExists(val username: String)
-
-context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User =
-  catch({
-    UserTable.insertReturning { insert ->
-      insert[username] = create.username
-      insert[email] = create.email
-    }.toUser()
-  }) { e: PLSQLException ->
-    if(e.uniqueViolation()) raise(UserAlreadyExists(create.username))
-    else throw e
-  }
-
-// Example
-context(_: Transaction)
-suspend fun insertUserOrNull(create: CreateUser): User? =
-  recover({
-    insertUser(create)
-  }) { _ -> null }
-
-context(_: Transaction)
-suspend fun insertUserResult(create: CreateUser): Either<UserAlreadyExists, User> =
-  either {
-    insertUser(create)
-  }
-```
-
-</TypeHint>
-</TypeHint>
-
----
-
-# Ktor Routes using Spine
-
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="7" receiver="Transaction">
-<DrawnAnnotation text="Raise<UserAlreadyExists>"/>
-<DrawnAnnotation text="routeWithRaise" label="Spine's Arrow-kt support brings `Raise` into the context for all failures" on="0" :connect="true" :geometry="{ label: { x: 0.4065, y: 0.7630, width: 0.7047 }, connector: { type: 'quadratic', start: { x: 0.0856, y: 0.4185 }, control: { x: 0.0801, y: 0.5198 }, end: { x: 0.0956, y: 0.7297 } } }"/>
-<DrawnAnnotation text="Transaction" on="1" color="var(--fundamentals-pink)"/>
-<DrawnAnnotation text="transaction" on="1" color="var(--fundamentals-pink)"/>
-
-
-```kotlin ktor
-import presentation.support.*
-import io.ktor.server.application.Application
-import io.ktor.server.routing.routing
-import opensavvy.spine.server.arrow.routeWithRaise
-import opensavvy.spine.server.respond
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import presentation.snippets.s01suspend.slide32.Api
-import presentation.snippets.s01suspend.slide32.CreateUser
-
-sealed interface Result
-data class Success(val user: User) : Result
-data object AlreadyExists : Result
-
-fun insertUser(create: CreateUser): Result = TODO()
-
-//Example
-context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User = TODO()
-  
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
-    val create = body.toCreateUser()
-    val user = transaction(database) {
-      insertUser(create)
-    }
-    respond(user)
-  }
-}
-```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
----
-class: job-slide job-slide-wide
----
-
-# Processors finish before dependencies close
-
-<TypeHint :line="1" receiver="SuspendAppScope">
-<TypeHint :line="2" context="ResourceScope">
-<SuspendGutter :lines="[2,3,4,5,8,9]">
-
-```kotlin arrow
-import arrow.continuations.SuspendApp
-import arrow.continuations.ktor.server
-import arrow.fx.coroutines.ResourceScope
-import arrow.fx.coroutines.resourceScope
-import io.ktor.server.netty.Netty
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import java.lang.System.getenv
-
-val host: String = getenv("HOST")
-val port: Int = getenv("PORT").toInt()
-
-class Dependencies {
-  suspend fun processor(): Unit = awaitCancellation()
-  suspend fun close(): Unit = Unit
-}
-
-suspend fun ResourceScope.dependencies(): Dependencies =
-  install({ Dependencies() }) { dep, _ -> dep.close() }
-
-suspend fun ResourceScope.coroutineScope(): CoroutineScope =
-  install({ CoroutineScope(SupervisorJob() + Dispatchers.Default) }) { scope, _ ->
-    scope.coroutineContext.job.cancelAndJoin()
-  }
-
-// Example
-fun main() = SuspendApp {
-  resourceScope {
-    val dep = dependencies()
-    val scope = coroutineScope()
-    server(Netty, host = host, port = port) {
-      users(dep.database)
-    }
-    scope.launch { dep.processor() }
-    awaitCancellation()
-  }
-}
-```
-
-</SuspendGutter>
-</TypeHint>
-</TypeHint>
-
-<JobTree
-:root="{ label: 'SuspendApp' }"
-:children="[
-{
-label: 'resourceScope', kind: 'scope',
-children: [
-{ label: 'dependencies()', kind: 'resource' },
-{
-label: 'coroutineScope()', kind: 'resource',
-children: [{ label: 'launch { dep.processor() }' }],
-},
-{ label: 'server(Netty)', kind: 'resource' },
-],
-},
-]"
-:cancel="1"
-cancel-label="SIGTERM"
-/>
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="Channel<Event>" label="KotlinX Coroutines suspending Queue" on="0"  :geometry="{ label: { x: 0.5182, y: 0.3454 } }"/>
-<DrawnAnnotation text="for (event in events)" label="Suspending iterator" on="1"  :geometry="{ label: { x: 0.3758, y: 0.3484 } }"/>
-<SuspendGutter :lines="[3, 4]">
-
-```kotlin
-import kotlinx.coroutines.Channel
-
-suspend fun processor() {
-  val events: Channel<Event> = sdk.events()
-  for (event in events) {
-    handle(event)
-  }
-}
-```
-
-</SuspendGutter>
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="consumeAsFlow" label="Flow is a concurrent stream" on="0"  :geometry="{ label: { x: 0.4948, y: 0.3006 } }"/>
-<DrawnAnnotation text="map" label="Supports `suspend`" on="1"  :geometry="{ label: { x: 0.3781, y: 0.3645 }, connector: { type: 'quadratic', start: { x: 0.1471, y: 0.3139 }, control: { x: 0.2469, y: 0.3147 }, end: { x: 0.2928, y: 0.3436 } } }" :connect="true"/>
-<DrawnAnnotation text="collect" label="Drain the `Flow`, `suspend` awaits until entire `Flow` is drained" on="2"  :geometry="{ label: { x: 0.4747, y: 0.3914 }, connector: { type: 'quadratic', start: { x: 0.1522, y: 0.3724 }, control: { x: 0.1703, y: 0.3995 }, end: { x: 0.1921, y: 0.3955 } } }" :connect="true"/>
-<SuspendGutter :lines="[3,4]">
-
-```kotlin
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor() {
-  sdk.events().consumeAsFlow()
-    .map { handle(it) }
-    .collect()
-}
-```
-
-</SuspendGutter>
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="suspend {" />
-<DrawnAnnotation text="asFlow()" label="Manually lift `suspend` to `Flow` to access parallelism"  :connect="true" :geometry="{ label: { x: 0.6792, y: 0.4651 } }"/>
-
-```kotlin
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor() {
-  sdk.events().consumeAsFlow()
-    .flatMapMerge(concurrency = 64) { suspend { handle(it) }.asFlow() }
-    .collect()
-}
-```
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="parMapUnordered" label="Equivalent of `flatMapMerge`, ordering comes at a cost"  :connect="true" :geometry="{ label: { x: 0.3483, y: 0.4651 } }"/>
-
-```kotlin arrow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor() {
-  sdk.events().consumeAsFlow()
-    .parMapUnordered(concurrency = 64) { handle(it) }
-    .collect()
-}
-```
-
----
-
-# Process events in parallel
-
-```kotlin arrow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor() {
-  sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
-    .collect()
-}
-```
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
-
-```kotlin arrow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor(): Flow<Unit> =
-  sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
-```
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="retry" />
-<DrawnAnnotation text="buffer" label="Typical streaming operators available, easy to build your own\nArrow Fx Coroutines has additional ones like `parMap`"  :connect="true" :geometry="{ label: { x: 0.5186, y: 0.6001 }, connector: { type: 'quadratic', start: { x: 0.1805, y: 0.5487 }, control: { x: 0.2197, y: 0.5556 }, end: { x: 0.2311, y: 0.5791 } } }"/>
-
-```kotlin arrow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor(): Flow<Unit> =
-  sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
-
-suspend fun program(): Unit {
-  processor()
-    .retry(3) { cause -> cause is RetryiableException }
-    .buffer(100)
-    .collect()
-}
-
-```
-
----
-
-# Process events in parallel
-
-<DrawnAnnotation text="onCompletion" label="We can backpressure SuspendApp process on exit"  :connect="true" :geometry="{ label: { x: 0.4629, y: 0.6593 } }"/>
-
-```kotlin arrow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import presentation.support.*
-
-object sdk {
-  fun events(): Channel<Event> = Channel()
-}
-
-// Example
-suspend fun processor(): Flow<Unit> =
-  sdk.events().consumeAsFlow()
-    .parMap(concurrency = 64) { handle(it) }
-
-suspend fun program(): Unit {
-  processor()
-    .retry(3) { cause -> cause is RetryiableException }
-    .buffer(100)
-    .onCompletion { withContext(NonCancellable) { delay(10.seconds) } }
-    .collect()
-}
-
-```
-
----
-
-# `async` starts independent work
-
-<DrawnAnnotation text="coroutineScope" />
-<DrawnAnnotation text="async" />
-<DrawnAnnotation text="async" occurrence="2" />
-<DrawnAnnotation text="await()"/>
-<DrawnAnnotation text="await()" occurrence="2" />
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" context="context(Raise<AlreadyExists>, Raise<InvalidUser>)">
-<TypeHint :line="4" receiver="CoroutineScope">
-
-
-```kotlin{4-8} ktor
-import presentation.support.*
-import io.ktor.server.application.Application
-import io.ktor.server.routing.routing
-import opensavvy.spine.server.arrow.routeWithRaise
-import opensavvy.spine.server.respond
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import presentation.snippets.s01suspend.slide32.Api
-import presentation.snippets.s01suspend.slide32.CreateUser
-
-sealed interface Result
-data class Success(val user: User) : Result
-data object AlreadyExists : Result
-
-fun insertUser(create: CreateUser): Result = TODO()
-
-context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User = TODO()
-  
-//Example
-fun Application.users(database: Database) = routing {
-  routeWithRaise(Api.Users.create) {
-    val create = body.toCreateUser()
-    val userWithProfile = coroutineScope {
-        val user = async { transaction(database) { insertUser(create) } }
-        val profile = async { transaction(database) { createProfile(create) } }
-        user.await().withProfile(profile.await())
-    }
-    respond(userWithProfile)
-  }
-}
-```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
-<!--
-
-Both children start before we await. This is concurrent; actual parallel
-execution depends on the dispatcher and work. The enclosing coroutineScope waits
-for its children. A failing child cancels its sibling, and cancelling the caller
-cancels both: structured concurrency makes ownership visible in the block.
-Source: https://kotlinlang.org/docs/composing-suspending-functions.html
--->
-
----
-
-# Typed authentication
-
-<TypeHint :line="1" receiver="Routing">
-<TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
-```kotlin
-import io.ktor.server.application.Application
-import io.ktor.server.routing.routing
-import opensavvy.spine.server.fail
-import presentation.snippets.s01suspend.slide28.Api
-import opensavvy.spine.server.route
-import opensavvy.spine.server.respond
-import presentation.snippets.s01suspend.slide28.CreateUser
-import presentation.snippets.s01suspend.slide28.UserAlreadyExists
-import presentation.support.*
-
-sealed interface Result
-data class Success(val user: User) : Result
-data object AlreadyExists : Result
-
-fun insertUser(createUser: CreateUser): Result = TODO()
-fun getAllUsers(): List<User> = emptyList()
-
-//Example
-fun Application.users() = routing {
-  route(Api.Users.list) {
-    val users = getAllUsers()
-    respond(users)
-  }
-}
-```
-
-</TypeHint>
-</TypeHint>
-
----
-
-# Typed authentication
-
-<DrawnAnnotation text="JwtUser" :line="1" />
-<DrawnAnnotation text="JwtUser" :line="2" />
-<DrawnAnnotation text="JwtUser" :line="6" label="The `principal` is typed"  :connect="true" :geometry="{ label: { x: 0.2966, y: 0.5147 } }"/>
-
-```kotlin ktor 
-val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtUser>("ktor-arrow-server") {
-        verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
-        validate {
-            val userId = it.getClaim("user_id", Long::class)
-            JwtUser(userId)
-        }
-    }
-```
-
----
-
-# Typed authentication
-
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
-```kotlin{1,5,6,10,11|7} ktor 
-val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") { }
-
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
-      val user = call.principal
-      val users = getAllUsers()
-      respond(users)
-    }
-  }
-}
-```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
----
-magic-move
----
-
-# Typed authentication
-
-<TypeHint :line="4" receiver="Routing">
-<TypeHint :line="5" context="context(PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-
-```kotlin{7,14-16} ktor 
-val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") { }
-
-fun Application.users() = routing {
-  authenticateWith(jwt) {
-    route(Api.Users.list) {
-      val user = call.principal
-      val users = getAllUsers()
-      respond(users)
-    }
-  }
-}
-
-context(ctx: PrincipalContext<P>)
-val <P : Any> ApplicationCall.principal: P
-  get() = ctx.principal(this)
-```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
-
----
-
-# Typed authentication
-
-<TypeHint :line="5" receiver="Routing">
-<TypeHint :line="6" context="context(RolesContext<JwtUser, JwtRole>, PrincipalContext<JwtUser>, Unit)">
-<TypeHint :line="7" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
-<DrawnAnnotation text="SchemeWithRoles<JwtUser, JwtRole" label="Roles become part of the typed scheme too"  :connect="true" :geometry="{ label: { x: 0.6637, y: 0.3117 }, connector: { type: 'quadratic', start: { x: 0.5634, y: 0.2278 }, control: { x: 0.5649, y: 0.2560 }, end: { x: 0.5634, y: 0.2908 } } }"/>
-<DrawnAnnotation text="roles = [Role.Admin]" />
-<DrawnAnnotation text="call.roles" />
-
-```kotlin{1-3,6-13} ktor 
-val jwt: AuthenticationSchemeWithRoles<JwtUser, JwtRole, Unit, AuthenticationScheme<JwtUser, Unit>> =
-    jwt<JwtContext>("ktor-arrow-server") { }
-      .withRoles { it.roles }
-
-fun Application.users() = routing {
-  authenticateWith(jwt, roles = [Role.Admin]) {
-    route(Api.Users.list) {
-      val user = call.principal
-      val roles = call.roles
-      val users = getAllUsers()
-      respond(users)
-    }
-  }
-}
-```
-
-</TypeHint>
-</TypeHint>
-</TypeHint>
