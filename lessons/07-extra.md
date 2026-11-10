@@ -5,8 +5,22 @@
 <SuspendGutter :lines="[2]">
 
 ```kotlin
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.suspendCoroutine
+data class CreateUser(val name: String)
+data class SdkUser(val name: String)
+abstract class RequestHandler<T> {
+  abstract fun onSuccess(value: T)
+  abstract fun onFailure(error: Throwable)
+}
+fun CreateUser.toSdkRequest(): String = name
+object sdk {
+  fun execute(request: String, handler: RequestHandler<SdkUser>): Request = TODO()
+}
+
+// Example
 suspend fun insertUser(create: CreateUser): User =
-  suspendCoroutine { cont: Continuation<List<Event>> ->
+  suspendCoroutine { cont: Continuation<User> ->
     
   }
 ```
@@ -22,6 +36,21 @@ suspend fun insertUser(create: CreateUser): User =
 <DrawnAnnotation text="cont.resumeWithException(error)" on="1" />
 
 ```kotlin
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+data class CreateUser(val name: String)
+data class SdkUser(val name: String)
+abstract class RequestHandler<T> {
+  abstract fun onSuccess(value: T)
+  abstract fun onFailure(error: Throwable)
+}
+fun CreateUser.toSdkRequest(): String = name
+object sdk {
+  fun execute(request: String, handler: RequestHandler<SdkUser>): Request = TODO()
+}
+
+// Example
 suspend fun insertUser(create: CreateUser): SdkUser =
   suspendCoroutine { cont ->
     sdk.execute(create.toSdkRequest(), object : RequestHandler<SdkUser>() {
@@ -41,8 +70,23 @@ suspend fun insertUser(create: CreateUser): SdkUser =
 <DrawnAnnotation text="invokeOnCancellation { call.cancel() }" />
 
 ```kotlin
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.*
+data class CreateUser(val name: String)
+data class SdkUser(val name: String)
+abstract class RequestHandler<T> {
+  abstract fun onSuccess(value: T)
+  abstract fun onFailure(error: Throwable)
+}
+fun CreateUser.toSdkRequest(): String = name
+object sdk {
+  fun execute(request: String, handler: RequestHandler<SdkUser>): Request = TODO()
+}
+
+// Example
 suspend fun insertSdkUser(create: CreateUser): SdkUser =
-  suspendCoroutineCancellable { cont ->
+  suspendCancellableCoroutine { cont ->
     val call = sdk.execute(create.toSdkRequest(), object : RequestHandler<SdkUser>() {
       override fun onSuccess(value: SdkUser) = cont.resume(value)
       override fun onFailure(error: Throwable) = cont.resumeWithException(error)
@@ -59,6 +103,7 @@ suspend fun insertSdkUser(create: CreateUser): SdkUser =
 <SuspendGutter :lines="[3]">
 
 ```kotlin
+import kotlinx.coroutines.*
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
@@ -79,6 +124,7 @@ suspend fun ByteArray.checksum() =
 <SuspendGutter :lines="[3]">
 
 ```kotlin
+import kotlinx.coroutines.*
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
@@ -100,8 +146,11 @@ suspend fun ByteArray.checksum() =
 <SuspendGutter :lines="[3, 4]">
 
 ```kotlin
-import kotlinx.coroutines.Channel
+import kotlinx.coroutines.channels.Channel
 
+object sdk { fun events(): Channel<Event> = Channel() }
+
+// Example
 suspend fun processor() {
   val events: Channel<Event> = sdk.events()
   for (event in events) {
@@ -122,6 +171,7 @@ suspend fun processor() {
 <SuspendGutter :lines="[3,4]">
 
 ```kotlin
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -150,6 +200,7 @@ suspend fun processor() {
 <DrawnAnnotation text="asFlow()" label="Manually lift `suspend` to `Flow` to access parallelism"  :connect="true" :geometry="{ label: { x: 0.6792, y: 0.4651 } }"/>
 
 ```kotlin
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -175,6 +226,8 @@ suspend fun processor() {
 <DrawnAnnotation text="parMapUnordered" label="Equivalent of `flatMapMerge`, ordering comes at a cost"  :connect="true" :geometry="{ label: { x: 0.3483, y: 0.4651 } }"/>
 
 ```kotlin arrow
+import kotlinx.coroutines.flow.*
+import arrow.fx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -198,6 +251,8 @@ suspend fun processor() {
 # Process events in parallel
 
 ```kotlin arrow
+import kotlinx.coroutines.flow.*
+import arrow.fx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -223,6 +278,8 @@ suspend fun processor() {
 <DrawnAnnotation text="Flow<Unit>" label="Allow further composition" />
 
 ```kotlin arrow
+import kotlinx.coroutines.flow.*
+import arrow.fx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.Flow
@@ -247,11 +304,15 @@ suspend fun processor(): Flow<Unit> =
 <DrawnAnnotation text="buffer" label="Typical streaming operators available, easy to build your own\nArrow Fx Coroutines has additional ones like `parMap`"  :connect="true" :geometry="{ label: { x: 0.5186, y: 0.6001 }, connector: { type: 'quadratic', start: { x: 0.1805, y: 0.5487 }, control: { x: 0.2197, y: 0.5556 }, end: { x: 0.2311, y: 0.5791 } } }"/>
 
 ```kotlin arrow
+import kotlinx.coroutines.flow.*
+import arrow.fx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.map
 import presentation.support.*
+
+class RetryiableException : Exception()
 
 object sdk {
   fun events(): Channel<Event> = Channel()
@@ -278,11 +339,17 @@ suspend fun program(): Unit {
 <DrawnAnnotation text="onCompletion" label="We can backpressure SuspendApp process on exit"  :connect="true" :geometry="{ label: { x: 0.4629, y: 0.6593 } }"/>
 
 ```kotlin arrow
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import arrow.fx.coroutines.*
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.map
 import presentation.support.*
+
+class RetryiableException : Exception()
 
 object sdk {
   fun events(): Channel<Event> = Channel()
@@ -318,24 +385,31 @@ suspend fun program(): Unit {
 
 
 ```kotlin{4-8} ktor
+import arrow.core.raise.context.Raise
+import io.ktor.server.application.*
+import kotlinx.coroutines.*
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import opensavvy.spine.server.arrow.routeWithRaise
 import opensavvy.spine.server.respond
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import presentation.snippets.s01suspend.slide32.Api
-import presentation.snippets.s01suspend.slide32.CreateUser
+import presentation.snippets.s01suspend.slide19.Api
+import presentation.snippets.s01suspend.slide19.CreateUser
 
 sealed interface Result
 data class Success(val user: User) : Result
 data object AlreadyExists : Result
 
-fun insertUser(create: CreateUser): Result = TODO()
+fun CreateUser.toCreateUser(): CreateUser = this
+fun createProfile(create: CreateUser): Unit = TODO()
+fun User.withProfile(profile: Unit): User = this
 
 context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User = TODO()
+fun insertUser(create: CreateUser): User = TODO()
   
 //Example
 fun Application.users(database: Database) = routing {
@@ -372,14 +446,15 @@ Source: https://kotlinlang.org/docs/composing-suspending-functions.html
 <TypeHint :line="2" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 
 ```kotlin
+import io.ktor.server.application.*
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import opensavvy.spine.server.fail
-import presentation.snippets.s01suspend.slide28.Api
+import presentation.snippets.s01suspend.slide19.Api
 import opensavvy.spine.server.route
 import opensavvy.spine.server.respond
-import presentation.snippets.s01suspend.slide28.CreateUser
-import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 
 sealed interface Result
@@ -410,11 +485,23 @@ fun Application.users() = routing {
 <DrawnAnnotation text="JwtUser" :line="6" label="The `principal` is typed"  :connect="true" :geometry="{ label: { x: 0.2966, y: 0.5147 } }"/>
 
 ```kotlin ktor 
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import com.auth0.jwt.algorithms.Algorithm
+import opensavvy.spine.server.route
+import presentation.snippets.s01suspend.slide19.Api
+enum class Role : AuthenticationRole { Admin }
+typealias JwtRole = Role
+data class JwtUser(val id: Long, val roles: Set<Role> = emptySet())
+object env { val issuer = "issuer"; val secret = "secret" }
+fun getAllUsers(): List<User> = emptyList()
+
+// Example
 val jwt: AuthenticationScheme<JwtUser, Unit> =
     jwt<JwtUser>("ktor-arrow-server") {
         verifier(env.issuer, "ktor-arrow-server", Algorithm.HMAC512(env.secret))
         validate {
-            val userId = it.getClaim("user_id", Long::class)
+            val userId = it.getClaim("user_id", Long::class) ?: return@validate null
             JwtUser(userId)
         }
     }
@@ -429,8 +516,23 @@ val jwt: AuthenticationScheme<JwtUser, Unit> =
 <TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 
 ```kotlin{1,5,6,10,11|7} ktor 
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import com.auth0.jwt.algorithms.Algorithm
+import opensavvy.spine.server.route
+import presentation.snippets.s01suspend.slide19.Api
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
+enum class Role : AuthenticationRole { Admin }
+typealias JwtRole = Role
+data class JwtUser(val id: Long, val roles: Set<Role> = emptySet())
+object env { val issuer = "issuer"; val secret = "secret" }
+fun getAllUsers(): List<User> = emptyList()
+
+// Example
 val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") { }
+    jwt<JwtUser>("ktor-arrow-server") { }
 
 fun Application.users() = routing {
   authenticateWith(jwt) {
@@ -458,8 +560,24 @@ magic-move
 <TypeHint :line="6" receiver="TypedRespondScope<Unit, List<User>, Never, Parameters.Empty>">
 
 ```kotlin{7,14-16} ktor 
+import io.ktor.server.auth.principal as typedPrincipal
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import com.auth0.jwt.algorithms.Algorithm
+import opensavvy.spine.server.route
+import presentation.snippets.s01suspend.slide19.Api
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
+enum class Role : AuthenticationRole { Admin }
+typealias JwtRole = Role
+data class JwtUser(val id: Long, val roles: Set<Role> = emptySet())
+object env { val issuer = "issuer"; val secret = "secret" }
+fun getAllUsers(): List<User> = emptyList()
+
+// Example
 val jwt: AuthenticationScheme<JwtUser, Unit> =
-    jwt<JwtContext>("ktor-arrow-server") { }
+    jwt<JwtUser>("ktor-arrow-server") { }
 
 fun Application.users() = routing {
   authenticateWith(jwt) {
@@ -473,7 +591,7 @@ fun Application.users() = routing {
 
 context(ctx: PrincipalContext<P>)
 val <P : Any> ApplicationCall.principal: P
-  get() = ctx.principal(this)
+  get() = this.typedPrincipal
 ```
 
 </TypeHint>
@@ -492,15 +610,30 @@ val <P : Any> ApplicationCall.principal: P
 <DrawnAnnotation text="call.roles" />
 
 ```kotlin{1-3,6-13} ktor 
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import com.auth0.jwt.algorithms.Algorithm
+import opensavvy.spine.server.route
+import presentation.snippets.s01suspend.slide19.Api
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
+enum class Role : AuthenticationRole { Admin }
+typealias JwtRole = Role
+data class JwtUser(val id: Long, val roles: Set<Role> = emptySet())
+object env { val issuer = "issuer"; val secret = "secret" }
+fun getAllUsers(): List<User> = emptyList()
+
+// Example
 val jwt: AuthenticationSchemeWithRoles<JwtUser, JwtRole, Unit, AuthenticationScheme<JwtUser, Unit>> =
-    jwt<JwtContext>("ktor-arrow-server") { }
+    jwt<JwtUser>("ktor-arrow-server") { }
       .withRoles { it.roles }
 
 fun Application.users() = routing {
   authenticateWith(jwt, roles = [Role.Admin]) {
     route(Api.Users.list) {
       val user = call.principal
-      val roles = call.roles
+      val roles = user.roles
       val users = getAllUsers()
       respond(users)
     }

@@ -12,8 +12,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import presentation.snippets.s01suspend.slide6.awaitUser
-import presentation.snippets.s01suspend.slide13.eventSource
+import presentation.fixtures.awaitUser
+import presentation.fixtures.eventSource
 import presentation.support.EventConnector
 import presentation.support.EventSource
 import presentation.support.Request
@@ -21,7 +21,7 @@ import presentation.support.Sdk
 import presentation.support.User
 import presentation.support.UserId
 
-// Tests call the extracted slide functions, so the shown implementation is tested.
+// Regression contracts for callback adaptation and resource ownership.
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class CoroutineContractsTest {
   private class CallbackSdk : Sdk {

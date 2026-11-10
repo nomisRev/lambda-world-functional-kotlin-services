@@ -8,10 +8,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
-import presentation.snippets.s04errors.slide36.Username as SlideUsername
-import presentation.snippets.s04errors.slide37.RegisterUserRequest
-import presentation.snippets.s04errors.slide39.MissingUser
-import presentation.snippets.s04errors.slide39.greeting
+import presentation.support.Username as SlideUsername
+import presentation.fixtures.RegisterUserRequest
+import presentation.fixtures.MissingUser
+import presentation.fixtures.greeting
 import presentation.support.IncorrectInput
 import presentation.support.InvalidField
 import presentation.support.Logger
@@ -41,7 +41,7 @@ class TypedErrorsTest {
   }
 
   @Test
-  fun `the shown value class constructor raises all failing rules`() {
+  fun `the domain value class constructor raises all failing rules`() {
     val result = either { SlideUsername(" ") }
     assertEquals(
       Either.Left(InvalidField(

@@ -20,6 +20,7 @@ dependencies {
   implementation(ktorLibs.server.config.yaml)
   implementation(ktorLibs.server.auth.jwt)
   implementation(ktorLibs.client.contentNegotiation)
+  implementation("io.ktor:ktor-client-apache5:3.6.0")
 
   implementation(exposed.jdbc)
 

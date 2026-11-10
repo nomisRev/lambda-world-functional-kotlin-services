@@ -174,6 +174,12 @@ clicks: 6
 <SuspendGutter :lines="[2,3,6]">
 
 ```kotlin arrow
+import io.ktor.server.netty.Netty
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import java.lang.System.getenv
+import kotlinx.coroutines.*
 fun main() = SuspendApp {
   resourceScope {
     server(Netty, host = getenv("HOST"), port = getenv("PORT").toInt()) {
@@ -249,6 +255,7 @@ clicks: 5
 <SuspendGutter :lines="[2, 3, 4, 5]">
 
 ```kotlin arrow
+import kotlinx.coroutines.*
 import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.resourceScope
@@ -303,6 +310,7 @@ clicks: 8
 <SuspendGutter :lines="[2,3,4,5,6]">
 
 ```kotlin arrow
+import kotlinx.coroutines.*
 import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.ResourceScope
@@ -397,6 +405,7 @@ clicks: 7
 <SuspendGutter :lines="[2,3,4,5,6,7]">
 
 ```kotlin arrow
+import kotlinx.coroutines.*
 import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.ResourceScope
@@ -486,6 +495,12 @@ magic-move
 <SuspendGutter :lines="[7,8,9,12,13]">
 
 ```kotlin{1,2,5,9,10,11} arrow
+import arrow.fx.coroutines.ResourceScope
+import presentation.snippets.s01suspend.slide13.dependencies
+import presentation.snippets.s01suspend.slide13.coroutineScope
+import io.ktor.server.application.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.resourceScope
@@ -532,6 +547,7 @@ fun main() = SuspendApp {
 <TypeHint :line="3" receiver="JsonBuilder">
 
 ```kotlin ktor
+import io.ktor.server.application.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -559,6 +575,7 @@ fun Application.app() {
 <TypeHint :line="3" receiver="JsonBuilder">
 
 ```kotlin ktor
+import io.ktor.server.application.*
 import io.ktor.http.ContentType
 import io.ktor.http.content.OutgoingContent
 import io.ktor.serialization.ContentConverter
@@ -672,16 +689,17 @@ object Api : RootResource("api") {                   // api
 <TypeHint :line="2" receiver="HttpClientConfig<Apache5Config>">
 
 ```kotlin ktor
+import io.ktor.client.engine.apache5.Apache5
 import io.ktor.client.HttpClient
 import opensavvy.spine.api.div
 import opensavvy.spine.client.handle
 import opensavvy.spine.client.request
-import presentation.snippets.s01suspend.slide32.Api
-import presentation.snippets.s01suspend.slide32.Api.Users
-import presentation.snippets.s01suspend.slide32.Api.Users.create
-import presentation.snippets.s01suspend.slide32.CreateUser
-import presentation.snippets.s01suspend.slide32.InvalidUser
-import presentation.snippets.s01suspend.slide32.UserAlreadyExists
+import presentation.snippets.s01suspend.slide19.Api
+import presentation.snippets.s01suspend.slide19.Api.Users
+import presentation.snippets.s01suspend.slide19.Api.Users.create
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.InvalidUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 
 // Example
@@ -692,7 +710,7 @@ suspend fun main() {
     client.request(Api / Users / create, CreateUser("johndoe"))
       .handle(
         { _: UserAlreadyExists -> println("User already exists") },
-        { errors: InvalidUser -> println(errors.joinToString { it.message }) },
+        { errors: InvalidUser -> println(errors.errors.joinToString()) },
         { _: User -> println("User created") }
       )
   }
@@ -715,14 +733,15 @@ suspend fun main() {
 <SmartCast text="result" :line="4">
 
 ```kotlin ktor
+import io.ktor.server.application.*
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import opensavvy.spine.server.fail
-import presentation.snippets.s01suspend.slide28.Api
+import presentation.snippets.s01suspend.slide19.Api
 import opensavvy.spine.server.route
 import opensavvy.spine.server.respond
-import presentation.snippets.s01suspend.slide28.CreateUser
-import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 
 sealed interface Result {
@@ -761,20 +780,21 @@ magic-move
 <DrawnAnnotation text="data object" on="2" label="Singleton object"  :connect="true" :geometry="{ label: { x: 0.2833, y: 0.3441 }, connector: { type: 'quadratic', start: { x: 0.1807, y: 0.3152 }, control: { x: 0.1831, y: 0.3383 }, end: { x: 0.1991, y: 0.3441 } } }"/>
 
 ```kotlin ktor
+import io.ktor.server.application.*
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import opensavvy.spine.server.fail
-import presentation.snippets.s01suspend.slide28.Api
+import presentation.snippets.s01suspend.slide19.Api
 import opensavvy.spine.server.route
 import opensavvy.spine.server.respond
-import presentation.snippets.s01suspend.slide28.CreateUser
-import presentation.snippets.s01suspend.slide28.UserAlreadyExists
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 
 //Example
 sealed interface Result { 
-  @JvmInline class Success(val user: User) : Result
-  data object UserAlreadyExists : Result
+  @JvmInline value class Success(val user: User) : Result
+  data object AlreadyExists : Result
 }
 
 suspend fun insertUser(createUser: CreateUser): Result = TODO()
@@ -802,6 +822,10 @@ fun Application.users() = routing {
 <TypeHint :line="7" receiver="TypedRespondScope<CreateUser, User, Or<Or<Never, ByCode<UserAlreadyExists>>, ByCode<InvalidUser>>, Parameters.Empty>">
 
 ```kotlin
+import arrow.core.raise.context.Raise
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
 data object UserAlreadyExists
 
 context(_: Raise<UserAlreadyExists>)
@@ -828,7 +852,15 @@ fun Application.users() = routing {
 <TypeHint :line="5" context="Raise<InvalidUser>, Raise<UserAlreadyExists>">
 
 ```kotlin
-context(_: Raise<AlreadyExists>)
+import arrow.core.raise.context.Raise
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
+import presentation.snippets.s01suspend.slide19.Api
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
+context(_: Raise<UserAlreadyExists>)
 suspend fun insertUser(createUser: CreateUser): User = TODO()
 
 fun Application.users() = routing {
@@ -863,6 +895,9 @@ magic-move
 <DrawnAnnotation text="operator fun invoke" on="2" label="Custom `invoke` operator allows for `Username(...)` syntax"  :connect="true" :geometry="{ label: { x: 0.4276, y: 0.5660 } }"/>
 
 ```kotlin arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
 @JvmInline
 value class Username private constructor(val value: String) {
   companion object {
@@ -883,13 +918,17 @@ magic-move
 <DrawnAnnotation text="ensure" :occurrence="2" label="Defined on `context(Raise<String>)` so it short-circuits"  :connect="true" :geometry="{ label: { x: 0.3688, y: 0.6412 } }"/>
 
 ```kotlin arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import arrow.core.raise.context.ensure
 @JvmInline
 value class Username private constructor(val value: String) {
   companion object {
     context(_: Raise<NonEmptyList<String>>)
     operator fun invoke(value: String): Username {
-      ensure(value.length >= 4) { ["Username is too short"] }
-      ensure(value.length <= 255) { ["Username is too long"] }
+      ensure(value.length >= 4) { nonEmptyListOf("Username is too short") }
+      ensure(value.length <= 255) { nonEmptyListOf("Username is too long") }
       return Username(value)
     }
   }
@@ -906,6 +945,11 @@ value class Username private constructor(val value: String) {
 <DrawnAnnotation text="ensureOrAccumulate" :occurrence="3" label="Defined on `context(Accumulate<String>)` so it _accumulates_ in `NonEmptyList<String>`"  :connect="true" :geometry="{ label: { x: 0.5382, y: 0.7478 }, connector: { type: 'quadratic', start: { x: 0.3209, y: 0.6066 }, control: { x: 0.3241, y: 0.6602 }, end: { x: 0.3209, y: 0.7270 } } }"/>
 
 ```kotlin arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import presentation.support.ensureOrAccumulate
+import arrow.core.raise.context.accumulate
 @JvmInline
 value class Username private constructor(val value: String) {
   companion object {
@@ -930,6 +974,11 @@ value class Username private constructor(val value: String) {
 <TypeHint :line="6" context="Accumulate<String>, Raise<String>">
 
 ```kotlin arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import presentation.support.ensureOrAccumulate
+import arrow.core.raise.context.accumulate
 @JvmInline
 value class Email private constructor(val value: String) {
   companion object {
@@ -951,6 +1000,15 @@ value class Email private constructor(val value: String) {
 # Validation
 
 ```kotlin arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import presentation.snippets.s01suspend.slide28.Username
+import presentation.snippets.s01suspend.slide29.Email
+
+data class CreateUserRequest(val username: String, val email: String)
+
+// Example
 data class CreateUser(val username: Username, val email: Email)
 
 context(_: Raise<NonEmptyList<String>>)
@@ -965,13 +1023,23 @@ magic-move
 
 <DrawnAnnotation text="NonEmptyList<NonEmptyList" label="Accumulating `NonEmptyList<String>` into a `NonEmptyList`" :connect="true" :geometry="{ label: { x: 0.6554, y: 0.5450 }, connector: { type: 'quadratic', start: { x: 0.5740, y: 0.4214 }, control: { x: 0.5763, y: 0.4687 }, end: { x: 0.5740, y: 0.5263 } } }"/>
 
-```kotlin{3-10} arrow
+```kotlin{3-10} arrow no-compile
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import arrow.core.raise.context.withError
+import presentation.snippets.s01suspend.slide28.Username
+import presentation.snippets.s01suspend.slide29.Email
+
+data class CreateUserRequest(val username: String, val email: String)
+
+// Example
 data class CreateUser(val username: Username, val email: Email)
 
 context(_: Raise<NonEmptyList<String>>)
 fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
-    it.reduce { acc, errors -> acc + errors }
+    errors.reduce { acc, errors -> acc + errors }
   }) {
     
   }
@@ -988,17 +1056,29 @@ magic-move
 <DrawnAnnotation text="accumulating" occurrence="2" label="Lift `Raise<NonEmptyList<String>>` into `Accumulate<String>`"  :connect="true" :geometry="{ label: { x: 0.6418, y: 0.7430 } }"/>
 
 ```kotlin{8-12} arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import presentation.support.accumulating
+import arrow.core.raise.context.accumulate
+import arrow.core.raise.context.withError
+import presentation.snippets.s01suspend.slide28.Username
+import presentation.snippets.s01suspend.slide29.Email
+
+data class CreateUserRequest(val username: String, val email: String)
+
+// Example
 data class CreateUser(val username: Username, val email: Email)
 
 context(_: Raise<NonEmptyList<String>>)
 fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
-    it.reduce { acc, errors -> acc + errors }
+    errors.reduce { acc, errors -> acc + errors }
   }) {
     accumulate {
       val username by accumulating { Username(username) }
       val email by accumulating { Email(email) }
-      User(username, email)
+      CreateUser(username, email)
     }
   }
 ```
@@ -1014,6 +1094,18 @@ magic-move
 <TypeHint :line="12" context="Accumulate<String>, Raise<String>">
 
 ```kotlin{1,2,6,9} arrow
+import arrow.core.raise.context.Raise
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
+import presentation.support.accumulating
+import arrow.core.raise.context.accumulate
+import arrow.core.raise.context.withError
+import presentation.snippets.s01suspend.slide28.Username
+import presentation.snippets.s01suspend.slide29.Email
+
+data class CreateUserRequest(val username: String, val email: String)
+
+// Example
 @JvmInline
 value class InvalidUser(val errors: NonEmptyList<String>)
 
@@ -1022,12 +1114,12 @@ data class CreateUser(val username: Username, val email: Email)
 context(_: Raise<InvalidUser>)
 fun CreateUserRequest.toCreateUser(): CreateUser =
   withError({ errors: NonEmptyList<NonEmptyList<String>> ->
-    InvalidUser(it.reduce { acc, errors -> acc + errors })
+    InvalidUser(errors.reduce { acc, errors -> acc + errors })
   }) {
     accumulate {
       val username by accumulating { Username(username) }
       val email by accumulating { Email(email) }
-      User(username, email)
+      CreateUser(username, email)
     }
   }
 ```
@@ -1042,6 +1134,18 @@ fun CreateUserRequest.toCreateUser(): CreateUser =
 <TypeHint :line="2" context="Raise<InvalidUser>, Raise<UserAlreadyExists>" >
 
 ```kotlin
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
+import opensavvy.spine.server.arrow.routeWithRaise
+import opensavvy.spine.server.respond
+import io.ktor.server.application.*
+import io.ktor.server.routing.routing
+import presentation.snippets.s01suspend.slide19.Api
+import presentation.snippets.s01suspend.slide19.CreateUser
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
+fun CreateUser.toCreateUser(): CreateUser = this
+suspend fun insertUser(create: CreateUser): User = TODO()
+
+// Example
 fun Application.users() = routing {
   routeWithRaise(Api.Users.create) {
     val create = body.toCreateUser()
@@ -1082,8 +1186,22 @@ suspend fun process(id: UserId): Unit | MissingUser | NotEligible =
 <DrawnAnnotation text="Transaction" label="Type of the Exposed Typed SQL DSL" :connect="true" :geometry="{ label: { x: 0.5265, y: 0.1903 }, connector: { type: 'quadratic', start: { x: 0.3039, y: 0.2237 }, control: { x: 0.3295, y: 0.2200 }, end: { x: 0.3529, y: 0.1975 } } }"/>
 
 ```kotlin{1-2} arrow
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
+
+data class CreateUser(val username: String, val email: String)
+object UserTable : Table("users") {
+  val username = varchar("username", 255)
+  val email = varchar("email", 350)
+}
+fun Iterable<ResultRow>.toUser(): User = single().let { User(UserId(1), it[UserTable.username]) }
+
+// Example
 context(_: Transaction)
-suspend fun insertUser(create: CreateUser): User =
+fun insertUser(create: CreateUser): User =
   UserTable.insertReturning { insert ->
     insert[username] = create.username
     insert[email] = create.email
@@ -1100,13 +1218,30 @@ suspend fun insertUser(create: CreateUser): User =
 <DrawnAnnotation text="raise(UserAlreadyExists(" on="1" label="Raise error into `context(Raise<UserAlreadyExists>)`"  :connect="true" :geometry="{ label: { x: 0.6246, y: 0.7644 } }"/>
 
 ```kotlin{1,3-5,10-13} arrow
-import arrow.core.raise.Raise
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.ResultRow
+import java.sql.SQLException as PLSQLException
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
+import arrow.core.raise.context.Raise
+import arrow.core.raise.catch
 import arrow.core.raise.context.raise
 
+data class CreateUser(val username: String, val email: String)
+object UserTable : Table("users") {
+  val username = varchar("username", 255)
+  val email = varchar("email", 350)
+}
+fun Iterable<ResultRow>.toUser(): User = single().let { User(UserId(1), it[UserTable.username]) }
+fun PLSQLException.uniqueViolation(): Boolean = sqlState == "23505"
+
+// Example
+@JvmInline
 value class UserAlreadyExists(val username: String)
 
 context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User =
+fun insertUser(create: CreateUser): User =
   catch({
     UserTable.insertReturning { insert ->
       insert[username] = create.username
@@ -1126,13 +1261,22 @@ suspend fun insertUser(create: CreateUser): User =
 <TypeHint :line="9" receiver="Transaction">
 
 ```kotlin arrow
-import arrow.core.raise.Raise
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.ResultRow
+import java.sql.SQLException as PLSQLException
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.either
+import arrow.core.raise.catch
 import arrow.core.raise.context.raise
 
+@JvmInline
 value class UserAlreadyExists(val username: String)
 
 context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User =
+fun insertUser(create: CreateUser): User =
   catch({
     UserTable.insertReturning { insert ->
       insert[username] = create.username
@@ -1143,12 +1287,18 @@ suspend fun insertUser(create: CreateUser): User =
     else throw e
   }
 
+data class CreateUser(val username: String, val email: String)
+object UserTable : Table("users") {
+  val username = varchar("username", 255)
+  val email = varchar("email", 350)
+}
+fun Iterable<ResultRow>.toUser(): User = single().let { User(UserId(1), it[UserTable.username]) }
+fun PLSQLException.uniqueViolation(): Boolean = sqlState == "23505"
+
 // Example
 context(_: Transaction)
-suspend fun insertUserOrNull(create: CreateUser): User? =
-  recover({
-    insertUser(create)
-  }) { _ -> null }
+fun insertUserOrNull(create: CreateUser): User? =
+  either { insertUser(create) }.getOrNull()
 
 context(_: Raise<UserAlreadyExists>)
 suspend fun insertUserResult(database: Database, create: CreateUser): User =
@@ -1174,6 +1324,10 @@ suspend fun insertUserResult(database: Database, create: CreateUser): User =
 
 
 ```kotlin ktor
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction as Transaction
+import arrow.core.raise.context.Raise
+import io.ktor.server.application.*
+import presentation.snippets.s01suspend.slide19.UserAlreadyExists
 import presentation.support.*
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
@@ -1181,18 +1335,19 @@ import opensavvy.spine.server.arrow.routeWithRaise
 import opensavvy.spine.server.respond
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import presentation.snippets.s01suspend.slide32.Api
-import presentation.snippets.s01suspend.slide32.CreateUser
+import presentation.snippets.s01suspend.slide19.Api
+import presentation.snippets.s01suspend.slide19.CreateUser
 
 sealed interface Result
 data class Success(val user: User) : Result
 data object AlreadyExists : Result
 
-fun insertUser(create: CreateUser): Result = TODO()
+
+fun CreateUser.toCreateUser(): CreateUser = this
 
 //Example
 context(_: Transaction, _: Raise<UserAlreadyExists>)
-suspend fun insertUser(create: CreateUser): User = TODO()
+fun insertUser(create: CreateUser): User = TODO()
   
 fun Application.users(database: Database) = routing {
   routeWithRaise(Api.Users.create) {
@@ -1220,6 +1375,9 @@ class: job-slide job-slide-wide
 <SuspendGutter :lines="[2,3,4,5,8,9]">
 
 ```kotlin arrow
+import org.jetbrains.exposed.v1.jdbc.Database
+import presentation.snippets.s01suspend.slide39.users
+import kotlinx.coroutines.*
 import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.ResourceScope
@@ -1238,6 +1396,7 @@ val host: String = getenv("HOST")
 val port: Int = getenv("PORT").toInt()
 
 class Dependencies {
+  val database: Database = TODO()
   suspend fun processor(): Unit = awaitCancellation()
   suspend fun close(): Unit = Unit
 }
@@ -1429,7 +1588,7 @@ sealed interface Access {
 }
 
 //Example
-data class User(val name: String, val age: Int, val email: String)
+data class User(val name: String, val age: Int, val email: String, val active: Boolean = true)
 
 fun message(access: Access): String = when (access) {
   is Granted if access.user.active -> {
@@ -1467,7 +1626,7 @@ sealed interface Access {
 }
 
 //Example
-data class User(val name: String, val age: Int, val email: String)
+data class User(val name: String, val age: Int, val email: String, val active: Boolean = true)
 
 fun message(access: Access): String = when (access) {
   is Granted if access.user.active -> {
@@ -1507,6 +1666,8 @@ val iterable: Iterable<String> = ["a", "bb", "ccc"]
 <InlineCompilerError text="[&quot;a&quot;, &quot;bb&quot;, &quot;ccc&quot;]" message="`NonEmptyList<String>` for collection literal does not\ndefine operator `of` and is not a supertype of `List`">
 
 ```kotlin
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
 data class NonEmptyList<A>(val head: A, val tail: List<A>)
 
 val literal: NonEmptyList<String> =
@@ -1526,6 +1687,8 @@ val nonEmptyList = NonEmptyList("a", ["bb", "ccc"])
 <InlineCompilerError text="[]" message="No value passed for parameter `head`">
 
 ```kotlin
+import arrow.core.nonEmptyListOf
+import arrow.core.NonEmptyList
 data class NonEmptyList<A> private constructor(val head: A, val tail: List<A>) {
   companion object {
     operator fun <A> of(head: A, vararg tail: A) =
