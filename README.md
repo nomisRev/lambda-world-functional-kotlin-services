@@ -26,18 +26,16 @@ npm run build
 npm run present
 ```
 
-This serves the built `dist/` files on port 4174 and relays navigation locally.
-Open the printed display URL on your laptop and the phone remote URL on your
-phone, on the same local network. Tap the right half to advance or the left half
-to go back. The phone shows upcoming content, speaker notes, and connection status.
-No internet connection is required. This server is for a trusted local network.
+The theme's `slidev-kotlin-present` serves the built `dist/` on port 4174
+(`PORT=4175 npm run present` changes it) and prints the display link for the
+laptop plus a QR code for the phone. Scan it on the same network; no internet
+connection is required. Tap the right half to advance or the left half to go
+back. The phone shows upcoming content, speaker notes, and connection status.
 
-Use `PORT=4175 npm run present` to change the port. Rebuild and reload both devices
-after source changes. `npm run present` does not rebuild the deck automatically.
-
-With the server running, `npm run test:remote` checks navigation in separate browser
-contexts. `npm run test:remote-restart` starts its own server on port 4175 and checks
-reconnection after a restart. These checks do not replace testing on a physical phone.
+Only a page opened from the printed link can move the slides. Present over a
+hotspot or a password-protected network: the link travels over plain HTTP.
+After a rebuild, reload both devices. See "Presenting with a phone remote" in
+the theme's README.
 
 ## Check the Kotlin examples
 

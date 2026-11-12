@@ -4,21 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "slidev --open",
-    "present": "node scripts/serve.mjs",
+    "present": "slidev-kotlin-present",
     "build": "slidev build",
     "export": "slidev export",
     "screenshot": "slidev export --format png",
     "snippets": "slidev-kotlin-snippets",
     "snippets:check": "slidev-kotlin-snippets --check",
     "check": "npm run snippets:check && ./gradlew check && npm run build",
-    "present:dev": "slidev --remote",
-    "test:remote": "node scripts/test-remote.mjs",
-    "test:remote-restart": "node scripts/test-remote-restart.mjs"
+    "present:dev": "slidev --remote"
   },
   "dependencies": {
     "@slidev/cli": "52.19.2",
     "roughjs": "4.6.6",
-    "slidev-theme-kotlin": "0.14.0",
+    "slidev-theme-kotlin": "0.14.1",
     "vue": "3.5.41"
   },
   "devDependencies": {
